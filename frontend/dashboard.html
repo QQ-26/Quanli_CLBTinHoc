@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,124 +11,133 @@
   <link rel="stylesheet" href="css/sidebar.css" />
   <link rel="stylesheet" href="css/dashboard.css" />
 </head>
+
 <body>
 
-<!-- ═══════════════════════════════════════════════
+  <!-- ═══════════════════════════════════════════════
      Layout wrapper — sidebar.js sẽ inject <aside> vào đây
      ═══════════════════════════════════════════════ -->
-<div class="layout-wrapper">
+  <div class="layout-wrapper">
 
-  <!-- ── Main content ── -->
-  <main class="main-content">
+    <!-- ── Main content ── -->
+    <main class="main-content">
 
-    <!-- Top bar: lời chào + ngày (render bởi dashboard.js) -->
-    <div class="dash-topbar" id="dash-topbar"></div>
+      <!-- Top bar: lời chào + ngày (render bởi dashboard.js) -->
+      <div class="dash-topbar" id="dash-topbar"></div>
 
-    <!-- Page body -->
-    <div class="page-container">
+      <!-- Page body -->
+      <div class="page-container">
 
-      <!-- Quick nav chips -->
-      <div class="dash-quick-nav">
-        <a href="members.html"       class="dash-quick-chip">👥 Thành viên</a>
-        <a href="sessions.html"      class="dash-quick-chip">📅 Buổi sinh hoạt</a>
-        <a href="role-sessions.html" class="dash-quick-chip admin-only">🎭 Vai trò buổi SH</a>
-      </div>
-
-      <!-- ── Stat cards ── -->
-      <div class="dash-stats-grid" id="dash-stats-grid">
-        <!-- Skeleton — bị thay bởi dashboard.js sau khi có dữ liệu -->
-      </div>
-
-      <!-- ── Content grid: sessions + members ── -->
-      <div class="dash-content-grid">
-
-        <!-- Buổi sinh hoạt gần đây -->
-        <div class="card">
-          <div class="card-header">
-            <span class="dash-card-title">📅 Buổi sinh hoạt gần đây</span>
-            <a href="sessions.html" class="btn btn-sm btn-secondary">Xem tất cả</a>
-          </div>
-          <div class="card-body" style="padding-top:.5rem; padding-bottom:.5rem;">
-            <div class="dash-session-list" id="dash-sessions-list">
-              <!-- Skeleton -->
-              <div style="padding:.75rem 0;">
-                <div class="skeleton" style="height:12px;width:70%;margin-bottom:.4rem;"></div>
-                <div class="skeleton" style="height:10px;width:40%;"></div>
-              </div>
-              <div style="padding:.75rem 0;">
-                <div class="skeleton" style="height:12px;width:60%;margin-bottom:.4rem;"></div>
-                <div class="skeleton" style="height:10px;width:35%;"></div>
-              </div>
-              <div style="padding:.75rem 0;">
-                <div class="skeleton" style="height:12px;width:75%;margin-bottom:.4rem;"></div>
-                <div class="skeleton" style="height:10px;width:45%;"></div>
-              </div>
-            </div>
-          </div>
+        <!-- Quick nav chips -->
+        <div class="dash-quick-nav">
+          <a href="members.html" class="dash-quick-chip">👥 Thành viên</a>
+          <a href="sessions.html" class="dash-quick-chip">📅 Buổi sinh hoạt</a>
+          <a href="role-sessions.html" class="dash-quick-chip admin-only">🎭 Vai trò buổi SH</a>
         </div>
 
-        <!-- Thành viên mới nhất -->
-        <div class="card">
-          <div class="card-header">
-            <span class="dash-card-title">👥 Thành viên</span>
-            <a href="members.html" class="btn btn-sm btn-secondary">Xem tất cả</a>
+        <!-- ── Stat cards ── -->
+        <div class="dash-stats-grid" id="dash-stats-grid">
+          <!-- Skeleton — bị thay bởi dashboard.js sau khi có dữ liệu -->
+        </div>
+
+
+
+        <!-- ── Biểu đồ đường thống kê ── -->
+        <div class="dash-bottom-row">
+          <!-- Biểu đồ đường thống kê số lượng thành viên có mặt các buổi sinh hoạt qua thời gian -->
+          <div class="card">
+            <div class="card-header">
+              <span class="dash-card-title">📈 Thống kê số lượng thành viên có mặt các buổi sinh hoạt</span>
+            </div>
+            <div class="card-body">
+              <div id="dash-attendance-chart" style="overflow-x:auto; padding:1rem 0;"></div>
+            </div>
           </div>
-          <div class="card-body" style="padding-top:.5rem; padding-bottom:.5rem;">
-            <div class="dash-member-list" id="dash-members-list">
-              <!-- Skeleton -->
-              <div style="display:flex;gap:.75rem;align-items:center;padding:.65rem 0;">
-                <div class="skeleton" style="width:34px;height:34px;border-radius:50%;flex-shrink:0;"></div>
-                <div style="flex:1;">
-                  <div class="skeleton" style="height:11px;width:65%;margin-bottom:.3rem;"></div>
-                  <div class="skeleton" style="height:9px;width:40%;"></div>
+        </div><!-- /dash-bottom-row -->
+
+
+        <!-- ── Content grid: sessions + members ── -->
+        <div class="dash-content-grid">
+
+          <!-- Buổi sinh hoạt gần đây -->
+          <div class="card">
+            <div class="card-header">
+              <span class="dash-card-title">📅 Buổi sinh hoạt gần đây</span>
+              <a href="sessions.html" class="btn btn-sm btn-secondary">Xem tất cả</a>
+            </div>
+            <div class="card-body" style="padding-top:.5rem; padding-bottom:.5rem;">
+              <div class="dash-session-list" id="dash-sessions-list">
+                <!-- Skeleton -->
+                <div style="padding:.75rem 0;">
+                  <div class="skeleton" style="height:12px;width:70%;margin-bottom:.4rem;"></div>
+                  <div class="skeleton" style="height:10px;width:40%;"></div>
                 </div>
-              </div>
-              <div style="display:flex;gap:.75rem;align-items:center;padding:.65rem 0;">
-                <div class="skeleton" style="width:34px;height:34px;border-radius:50%;flex-shrink:0;"></div>
-                <div style="flex:1;">
-                  <div class="skeleton" style="height:11px;width:70%;margin-bottom:.3rem;"></div>
-                  <div class="skeleton" style="height:9px;width:35%;"></div>
+                <div style="padding:.75rem 0;">
+                  <div class="skeleton" style="height:12px;width:60%;margin-bottom:.4rem;"></div>
+                  <div class="skeleton" style="height:10px;width:35%;"></div>
                 </div>
-              </div>
-              <div style="display:flex;gap:.75rem;align-items:center;padding:.65rem 0;">
-                <div class="skeleton" style="width:34px;height:34px;border-radius:50%;flex-shrink:0;"></div>
-                <div style="flex:1;">
-                  <div class="skeleton" style="height:11px;width:55%;margin-bottom:.3rem;"></div>
-                  <div class="skeleton" style="height:9px;width:45%;"></div>
+                <div style="padding:.75rem 0;">
+                  <div class="skeleton" style="height:12px;width:75%;margin-bottom:.4rem;"></div>
+                  <div class="skeleton" style="height:10px;width:45%;"></div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-      </div><!-- /dash-content-grid -->
 
-      <!-- ── Bottom row: điểm danh ── -->
-      <div class="dash-bottom-row">
-        <!-- Biểu đồ đường thống kê số lượng thành viên có mặt các buổi sinh hoạt qua thời gian -->
-        <div class="card">
-          <div class="card-header">
-            <span class="dash-card-title">📈 Thống kê số lượng thành viên có mặt các buổi sinh hoạt</span>
+
+          <!-- Thành viên mới nhất (3 ngày gần nhất) -->
+          <div class="card">
+            <div class="card-header">
+              <span class="dash-card-title">👥 Thành viên mới (3 ngày gần nhất)</span>
+              <a href="members.html" class="btn btn-sm btn-secondary">Xem tất cả</a>
+            </div>
+            <div class="card-body" style="padding-top:.5rem; padding-bottom:.5rem;">
+              <div class="dash-member-list" id="dash-members-list">
+                <!-- Skeleton -->
+                <div style="display:flex;gap:.75rem;align-items:center;padding:.65rem 0;">
+                  <div class="skeleton" style="width:34px;height:34px;border-radius:50%;flex-shrink:0;"></div>
+                  <div style="flex:1;">
+                    <div class="skeleton" style="height:11px;width:65%;margin-bottom:.3rem;"></div>
+                    <div class="skeleton" style="height:9px;width:40%;"></div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:.75rem;align-items:center;padding:.65rem 0;">
+                  <div class="skeleton" style="width:34px;height:34px;border-radius:50%;flex-shrink:0;"></div>
+                  <div style="flex:1;">
+                    <div class="skeleton" style="height:11px;width:70%;margin-bottom:.3rem;"></div>
+                    <div class="skeleton" style="height:9px;width:35%;"></div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:.75rem;align-items:center;padding:.65rem 0;">
+                  <div class="skeleton" style="width:34px;height:34px;border-radius:50%;flex-shrink:0;"></div>
+                  <div style="flex:1;">
+                    <div class="skeleton" style="height:11px;width:55%;margin-bottom:.3rem;"></div>
+                    <div class="skeleton" style="height:9px;width:45%;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="card-body">
-            <div id="dash-attendance-chart" style="overflow-x:auto; padding:1rem 0;"></div>
-          </div>
-        </div>
-      </div><!-- /dash-bottom-row -->
 
-    </div><!-- /page-container -->
-  </main>
-</div><!-- /layout-wrapper -->
+        </div><!-- /dash-content-grid -->
 
-<!-- ═══════════════════════════════════════════════
+
+
+      </div><!-- /page-container -->
+    </main>
+  </div><!-- /layout-wrapper -->
+
+  <!-- ═══════════════════════════════════════════════
      Scripts — thứ tự load bắt buộc:
      api.js → utils.js → sidebar.js → dashboard.js
      ═══════════════════════════════════════════════ -->
-<script src="js/api.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/sidebar.js"></script>
-<script src="js/dashboard.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </body>
+
 </html>

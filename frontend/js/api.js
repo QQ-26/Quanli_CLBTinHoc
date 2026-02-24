@@ -113,7 +113,13 @@ const AuthAPI = {
         // Lưu token và thông tin user
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
-        localStorage.setItem('currentUser', JSON.stringify(data.member));
+        // Đảm bảo member có roleName và isAdmin
+        let member = data.member;
+        if (member && member.roleId && member.roleId.roleName) {
+            member.roleName = member.roleId.roleName;
+            member.isAdmin = member.roleId.roleName.toLowerCase().includes('admin');
+        }
+        localStorage.setItem('currentUser', JSON.stringify(member));
         return data;
     },
 

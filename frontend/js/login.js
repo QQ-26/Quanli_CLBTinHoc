@@ -39,7 +39,16 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     btn.innerHTML = '<span>Đang đăng nhập...</span>';
 
     try {
-        await AuthAPI.login(mssv, password);
+        const loginData = await AuthAPI.login(mssv, password);
+        // Lấy thêm thông tin member để lấy roleName
+        const memberId = loginData.member.id || loginData.member._id;
+        const memberDetail = await MemberAPI.getById(memberId);
+        let user = loginData.member;
+        if (memberDetail && memberDetail.roleId && memberDetail.roleId.roleName) {
+            user.roleName = memberDetail.roleId.roleName;
+            user.isAdmin = memberDetail.roleId.roleName.toLowerCase().includes('admin');
+        }
+        localStorage.setItem('currentUser', JSON.stringify(user));
         showToast('Đăng nhập thành công!', 'success');
         setTimeout(() => {
             window.location.href = 'dashboard.html';

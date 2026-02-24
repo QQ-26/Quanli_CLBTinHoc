@@ -12,7 +12,6 @@ const _SIDEBAR_MENU = [
       { page: 'dashboard',      icon: '📊', label: 'Tổng quan',               href: 'dashboard.html',     adminOnly: false },
       { page: 'members',        icon: '👥', label: 'Thành viên',              href: 'members.html',       adminOnly: false },
       { page: 'sessions',       icon: '📅', label: 'Buổi sinh hoạt',          href: 'sessions.html',      adminOnly: false },
-      { page: 'activities',     icon: '🏆', label: 'Hoạt động khác',          href: 'activities.html',    adminOnly: false },
       { page: 'role-sessions',  icon: '🎭', label: 'Vai trò buổi sinh hoạt', href: 'role-sessions.html', adminOnly: true  },
     ],
   },
@@ -30,7 +29,10 @@ function buildSidebar(activePage) {
 
   const initials = user ? getInitials(user.fullName || user.mssv || 'U') : '?';
   const userName = user ? escapeHtml(user.fullName || user.mssv || 'Người dùng') : 'Người dùng';
-  const roleLabel = adminFlag ? 'Admin' : 'Thành viên';
+  // Hiển thị đúng vai trò
+  let roleLabel = 'Thành viên';
+  if (user && user.roleName && user.roleName.toLowerCase().includes('admin')) roleLabel = 'Admin';
+  else if (user && user.roleName) roleLabel = user.roleName;
 
   /* ── Build nav HTML ── */
   const navHTML = _SIDEBAR_MENU.map(group => {

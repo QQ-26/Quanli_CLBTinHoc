@@ -1,16 +1,18 @@
-document.addEventListener('DOMContentLoaded', async () => { 
-requireAuth();
-initLayout('members'); 
-initRoleRestrictions();  });
+/* ============================================================
+   members.js — Logic trang Thành viên
+   Phụ thuộc: api.js, utils.js, sidebar.js (load trước)
+   ============================================================ */
 
+// ── State ──────────────────────────────────────────────────
 const _memState = {
-  members:    [],
-  roles:      [],
-  totalPages: 1,
-  currentPage: 1,
-  keyword:    '',
+  members:        [],
+  roles:          [],
+  totalPages:     1,
+  currentPage:    1,
+  keyword:        '',
   deleteTargetId: null,
-  LIMIT: 10,
+  avatarDataUrl:  null,   // base64 ảnh đang chọn trong modal
+  LIMIT:          10,
 };
 
 /* ════════════════════════════════════════
@@ -33,9 +35,18 @@ async function _loadMembers(page = 1) {
   showLoading();
   try {
     const res = await MemberAPI.getAll(page, _memState.LIMIT, _memState.keyword);
-    _memState.members     = res.members     || [];
+
+    // Sắp xếp A-Z theo fullName (mặc định)
+    const sorted = (res.members || []).slice().sort((a, b) => {
+      const na = (a.fullName || a.mssv || '').toLowerCase();
+      const nb = (b.fullName || b.mssv || '').toLowerCase();
+      return na.localeCompare(nb, 'vi');
+    });
+
+    _memState.members     = sorted;
     _memState.totalPages  = res.totalPages  || 1;
     _memState.currentPage = res.currentPage || page;
+
     _renderTable();
     _renderPagination();
   } catch (err) {
@@ -67,39 +78,79 @@ function _renderTable() {
   }
 
   tbody.innerHTML = _memState.members.map((m, i) => {
-    const roleName  = m.roleId?.roleName || '—';
-    const isActive  = m.status === 'Hoạt động';
+    const roleName    = m.roleId?.roleName || '—';
+    const isActive    = m.status === 'Hoạt động';
     const statusBadge = `<span class="badge ${isActive ? 'badge-success' : 'badge-secondary'}">${escapeHtml(m.status || '—')}</span>`;
 
-    const adminActions = `
-      <div class="mem-actions admin-only">
-        <button class="btn btn-sm btn-warning" onclick="_openEditModal('${m._id}')">✏️ Sửa</button>
-        <button class="btn btn-sm btn-danger"  onclick="_openDeleteModal('${m._id}', '${escapeHtml(m.fullName || m.mssv)}')">🗑️ Xóa</button>
-      </div>`;
+    // Avatar: dùng ảnh thật nếu có, ngược lại dùng màu nền dựa vào tên
+    const avatarHtml = _buildAvatarHtml(m, 36);
+
+    const adminActions = isAdmin() ? `
+      <div class="mem-actions">
+        <button class="btn btn-sm btn-warning"
+          data-id="${m._id}"
+          onclick="_openEditModal(this.dataset.id)">✏️ Sửa</button>
+        <button class="btn btn-sm btn-danger"
+          data-id="${m._id}"
+          data-name="${escapeHtml(m.fullName || m.mssv)}"
+          onclick="_openDeleteModal(this.dataset.id, this.dataset.name)">🗑️ Xóa</button>
+      </div>` : '';
 
     return `
       <tr>
-        <td class="mem-stt">${offset + i + 1}</td>
+        <td class="td-stt">${offset + i + 1}</td>
         <td>
           <div class="mem-name-cell">
-            <div class="mem-avatar">${escapeHtml(getInitials(m.fullName || m.mssv || '?'))}</div>
-            <span>${escapeHtml(m.fullName || '—')}</span>
+            ${avatarHtml}
+            <span class="mem-fullname">${escapeHtml(m.fullName || '—')}</span>
           </div>
         </td>
         <td>${escapeHtml(m.mssv || '—')}</td>
         <td>${escapeHtml(m.className || '—')}</td>
-        <td>${escapeHtml(m.email || '—')}</td>
+        <td style="color:#5a5c69;">${escapeHtml(m.email || '—')}</td>
         <td><span class="badge badge-info">${escapeHtml(roleName)}</span></td>
         <td>${statusBadge}</td>
-        <td class="admin-only" style="text-align:center;">${adminActions}</td>
+        <td class="td-action admin-only">${adminActions}</td>
       </tr>`;
   }).join('');
+}
 
-
-  // Ẩn cột & nút admin-only nếu không phải admin
-  if (!isAdmin()) {
-    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+/**
+ * Tạo HTML avatar cho bảng
+ * Ưu tiên: avatarPath từ server → avatarDataUrl local → màu + chữ đầu tên
+ */
+function _buildAvatarHtml(member, size = 36) {
+  const src = member.avatarPath || member.avatar || null;
+  if (src) {
+    return `<div class="mem-avatar-wrap" style="width:${size}px;height:${size}px;">
+      <img src="${escapeHtml(src)}" alt="" onerror="this.parentElement.innerHTML='<span class=mem-avatar-initials>${escapeHtml(_getColorInitials(member.fullName || member.mssv))}</span>';this.parentElement.style.background='${_nameToColor(member.fullName || member.mssv)}';" />
+    </div>`;
   }
+  const color    = _nameToColor(member.fullName || member.mssv || '');
+  const initials = _getColorInitials(member.fullName || member.mssv || '?');
+  return `<div class="mem-avatar-wrap" style="width:${size}px;height:${size}px;background:${color};">
+    <span class="mem-avatar-initials">${escapeHtml(initials)}</span>
+  </div>`;
+}
+
+/** Lấy chữ cái đầu (tối đa 2 ký tự) — không viết tắt kiểu NQ, VP */
+function _getColorInitials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  // Lấy chữ đầu của từ đầu và từ cuối
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/** Tạo màu nền từ tên (nhất quán, không random) */
+function _nameToColor(name) {
+  const colors = [
+    '#4e73df','#1cc88a','#36b9cc','#e74a3b','#f6c23e',
+    '#6f42c1','#fd7e14','#20c9a6','#5a5c69','#858796',
+  ];
+  let hash = 0;
+  for (let i = 0; i < (name || '').length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
 }
 
 /* ════════════════════════════════════════
@@ -109,27 +160,19 @@ function _renderPagination() {
   const container = document.getElementById('mem-pagination');
   const { currentPage, totalPages } = _memState;
 
-  if (totalPages <= 1) {
-    container.innerHTML = '';
-    return;
-  }
+  if (totalPages <= 1) { container.innerHTML = ''; return; }
 
   let html = '';
-
-  // Prev
   html += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="_goToPage(${currentPage - 1})">‹</button>`;
 
-  // Pages (window of 5)
-  const start = Math.max(1, currentPage - 2);
+  const start = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
   const end   = Math.min(totalPages, start + 4);
 
   for (let p = start; p <= end; p++) {
     html += `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="_goToPage(${p})">${p}</button>`;
   }
 
-  // Next
   html += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="_goToPage(${currentPage + 1})">›</button>`;
-
   container.innerHTML = html;
 }
 
@@ -142,7 +185,7 @@ function _goToPage(page) {
    EVENTS
    ════════════════════════════════════════ */
 function _bindEvents() {
-  // Tìm kiếm (debounce 400ms)
+  // Tìm kiếm debounce 400ms
   let searchTimer;
   document.getElementById('mem-search').addEventListener('input', (e) => {
     clearTimeout(searchTimer);
@@ -156,11 +199,77 @@ function _bindEvents() {
   const btnAdd = document.getElementById('btn-add-member');
   if (btnAdd) btnAdd.addEventListener('click', _openAddModal);
 
-  // Nút Lưu trong modal
-  document.getElementById('btn-save-member').addEventListener('click', _handleSave);
+  // Nút Lưu
+  const btnSave = document.getElementById('btn-save-member');
+  if (btnSave) btnSave.addEventListener('click', _handleSave);
 
   // Nút Xóa xác nhận
-  document.getElementById('btn-confirm-delete').addEventListener('click', _handleDelete);
+  const btnDel = document.getElementById('btn-confirm-delete');
+  if (btnDel) btnDel.addEventListener('click', _handleDelete);
+
+  // Avatar file input — preview realtime
+  const avatarInput = document.getElementById('field-avatar');
+  if (avatarInput) avatarInput.addEventListener('change', _handleAvatarChange);
+
+  // Avatar preview cập nhật khi gõ tên (chế độ thêm mới, chưa chọn ảnh)
+  const nameInput = document.getElementById('field-fullName');
+  if (nameInput) nameInput.addEventListener('input', () => {
+    if (!_memState.avatarDataUrl) _updateModalAvatarPlaceholder();
+  });
+}
+
+/* ════════════════════════════════════════
+   AVATAR: xử lý chọn ảnh từ máy
+   ════════════════════════════════════════ */
+function _handleAvatarChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('Ảnh quá lớn! Vui lòng chọn ảnh dưới 2MB.', 'warning');
+    e.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    _memState.avatarDataUrl = ev.target.result;
+    _setModalAvatarImage(ev.target.result);
+  };
+  reader.readAsDataURL(file);
+}
+
+function _setModalAvatarImage(src) {
+  const box = document.getElementById('avatar-preview-box');
+  if (!box) return;
+  box.innerHTML = `<img src="${src}" alt="avatar" style="width:62px;height:62px;border-radius:50%;object-fit:cover;" />`;
+}
+
+function _updateModalAvatarPlaceholder() {
+  const box  = document.getElementById('avatar-preview-box');
+  if (!box) return;
+  const name  = document.getElementById('field-fullName').value.trim();
+  const init  = _getColorInitials(name || '?');
+  const color = _nameToColor(name);
+  box.style.background = color;
+  box.innerHTML = `<span style="color:#fff;font-size:1.2rem;font-weight:700;">${escapeHtml(init)}</span>`;
+}
+
+function _resetAvatarPreview(member = null) {
+  const box = document.getElementById('avatar-preview-box');
+  if (!box) return;
+  _memState.avatarDataUrl = null;
+  document.getElementById('field-avatar').value = '';
+
+  if (member?.avatarPath || member?.avatar) {
+    _setModalAvatarImage(member.avatarPath || member.avatar);
+  } else {
+    const name  = member?.fullName || member?.mssv || '';
+    const init  = _getColorInitials(name || '?');
+    const color = _nameToColor(name);
+    box.style.background = color;
+    box.innerHTML = `<span style="color:#fff;font-size:1.2rem;font-weight:700;">${escapeHtml(init)}</span>`;
+  }
 }
 
 /* ════════════════════════════════════════
@@ -173,6 +282,7 @@ function _openAddModal() {
   document.getElementById('hint-password').textContent = 'Bắt buộc khi tạo mới.';
   document.getElementById('password-required').style.display = 'inline';
 
+  _resetAvatarPreview(null);
   _populateRoleDropdown(null);
   openModal('modal-member');
 }
@@ -192,9 +302,10 @@ function _openEditModal(id) {
   document.getElementById('field-email').value     = member.email      || '';
   document.getElementById('field-status').value    = member.status     || 'Hoạt động';
   document.getElementById('field-password').value  = '';
-  document.getElementById('hint-password').textContent  = 'Để trống nếu không đổi mật khẩu.';
+  document.getElementById('hint-password').textContent = 'Để trống nếu không đổi mật khẩu.';
   document.getElementById('password-required').style.display = 'none';
 
+  _resetAvatarPreview(member);
   _populateRoleDropdown(member.roleId?._id || member.roleId || null);
   openModal('modal-member');
 }
@@ -232,7 +343,6 @@ async function _handleSave() {
   const mssv     = document.getElementById('field-mssv').value.trim();
   const password = document.getElementById('field-password').value.trim();
 
-  // Validation cơ bản
   if (!fullName) { showToast('Vui lòng nhập họ tên.', 'warning'); return; }
   if (!mssv)     { showToast('Vui lòng nhập MSSV.', 'warning'); return; }
   if (!id && !password) { showToast('Vui lòng nhập mật khẩu cho thành viên mới.', 'warning'); return; }
@@ -245,7 +355,8 @@ async function _handleSave() {
     roleId:    document.getElementById('field-roleId').value           || undefined,
     status:    document.getElementById('field-status').value,
   };
-  if (password) payload.passwordHash = password;
+  if (password)                  payload.passwordHash = password;
+  if (_memState.avatarDataUrl)   payload.avatarPath   = _memState.avatarDataUrl;
 
   showLoading();
   try {
@@ -277,7 +388,6 @@ async function _handleDelete() {
     await MemberAPI.delete(id);
     showToast('Xóa thành viên thành công!', 'success');
     closeModal('modal-delete');
-    // Nếu xóa hết trang cuối → về trang trước
     const targetPage = _memState.members.length === 1 && _memState.currentPage > 1
       ? _memState.currentPage - 1
       : _memState.currentPage;
@@ -289,5 +399,3 @@ async function _handleDelete() {
     _memState.deleteTargetId = null;
   }
 }
-
-//1

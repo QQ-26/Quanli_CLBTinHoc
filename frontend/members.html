@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thành viên — CLB Tin Học</title>
+
+  <link rel="stylesheet" href="css/common.css" />
+  <link rel="stylesheet" href="css/sidebar.css" />
+  <link rel="stylesheet" href="css/members.css" />
+</head>
+<body>
+
+<div class="layout-wrapper">
+  <main class="main-content">
+    <div class="page-container">
+
+      <!-- ── Page header ── -->
+      <div class="page-header">
+        <div>
+          <div class="page-title">👥 Danh sách thành viên</div>
+          <div class="page-subtitle">Quản lý thành viên CLB Tin Học</div>
+        </div>
+        <button class="btn btn-primary admin-only" id="btn-add-member">
+          ➕ Thêm thành viên
+        </button>
+      </div>
+
+      <!-- ── Search + filter bar ── -->
+      <div class="card mem-toolbar">
+        <input
+          type="text"
+          id="mem-search"
+          class="form-control"
+          placeholder="🔍 Tìm kiếm theo họ tên hoặc MSSV..."
+        />
+      </div>
+
+      <!-- ── Table card ── -->
+      <div class="card" style="margin-top: 1.25rem;">
+        <div class="card-body" style="padding: 0; overflow-x: auto;">
+          <table class="mem-table" id="mem-table">
+            <thead>
+              <tr>
+                <th style="width:50px">STT</th>
+                <th>Họ tên</th>
+                <th>MSSV</th>
+                <th>Lớp</th>
+                <th>Email</th>
+                <th>Vai trò</th>
+                <th>Trạng thái</th>
+                <th class="admin-only" style="width:120px; text-align:center;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="mem-tbody">
+              <!-- Skeleton -->
+              <tr><td colspan="8" class="mem-loading">Đang tải...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="mem-pagination" id="mem-pagination"></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL: Thêm / Sửa thành viên
+     ══════════════════════════════════════════ -->
+<div class="modal-overlay admin-only" id="modal-member">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-member-title">Thêm thành viên</h3>
+      <button class="modal-close" onclick="closeModal('modal-member')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-member" autocomplete="off">
+        <input type="hidden" id="field-id" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Họ và tên <span class="required">*</span></label>
+            <input type="text" id="field-fullName" class="form-control" placeholder="Nguyễn Văn A" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">MSSV <span class="required">*</span></label>
+            <input type="text" id="field-mssv" class="form-control" placeholder="2251234567" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Lớp</label>
+            <input type="text" id="field-className" class="form-control" placeholder="22TCLC_DT5" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="field-email" class="form-control" placeholder="example@ou.edu.vn" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Vai trò</label>
+            <select id="field-roleId" class="form-control">
+              <option value="">-- Chọn vai trò --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Trạng thái</label>
+            <select id="field-status" class="form-control">
+              <option value="Hoạt động">Hoạt động</option>
+              <option value="Không hoạt động">Không hoạt động</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" id="group-password">
+          <label class="form-label">Mật khẩu <span class="required" id="password-required">*</span></label>
+          <input type="password" id="field-password" class="form-control" placeholder="Để trống nếu không đổi (khi sửa)" />
+          <small class="form-hint" id="hint-password">Bắt buộc khi tạo mới.</small>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-member')">Hủy</button>
+      <button class="btn btn-primary" id="btn-save-member">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL: Xác nhận xóa
+     ══════════════════════════════════════════ -->
+<div class="modal-overlay admin-only" id="modal-delete">
+  <div class="modal-box modal-box--sm">
+    <div class="modal-header">
+      <h3 class="modal-title">⚠️ Xác nhận xóa</h3>
+      <button class="modal-close" onclick="closeModal('modal-delete')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p>Bạn có chắc muốn xóa thành viên <strong id="delete-member-name"></strong>?<br/>Hành động này không thể hoàn tác.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-delete')">Hủy</button>
+      <button class="btn btn-danger" id="btn-confirm-delete">Xóa</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/members.js"></script>
+</body>
+</html>

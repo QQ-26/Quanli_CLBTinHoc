@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vai trò buổi sinh hoạt — CLB Tin Học</title>
+
+  <link rel="stylesheet" href="css/common.css" />
+  <link rel="stylesheet" href="css/sidebar.css" />
+  <link rel="stylesheet" href="css/role-sessions.css" />
+</head>
+<body>
+
+<div class="layout-wrapper">
+  <main class="main-content">
+
+    <div class="page-container">
+
+      <!-- ── Page header ── -->
+      <div class="page-header">
+        <div>
+          <div class="page-title">🎭 Vai trò buổi sinh hoạt</div>
+          <div class="page-subtitle">Quản lý các vai trò được phân công trong buổi sinh hoạt</div>
+        </div>
+        <button class="btn admin-only" id="btn-add-role" onclick="roleSession_openAdd()">
+          + Thêm vai trò
+        </button>
+      </div>
+
+      <!-- ── Main card ── -->
+      <div class="card">
+        <div class="card-header">
+          <span class="role-card-title">Danh sách vai trò</span>
+          <span class="role-count-badge" id="role-count">Đang tải...</span>
+        </div>
+        <div class="card-body" style="padding: 0;">
+
+          <!-- Skeleton -->
+          <div id="role-skeleton" class="role-skeleton-wrap">
+            <div class="role-skeleton-row">
+              <div class="skeleton" style="height:14px; width:30px;"></div>
+              <div class="skeleton" style="height:14px; width:180px;"></div>
+              <div class="skeleton" style="height:28px; width:120px; border-radius:6px;"></div>
+            </div>
+            <div class="role-skeleton-row">
+              <div class="skeleton" style="height:14px; width:30px;"></div>
+              <div class="skeleton" style="height:14px; width:220px;"></div>
+              <div class="skeleton" style="height:28px; width:120px; border-radius:6px;"></div>
+            </div>
+            <div class="role-skeleton-row">
+              <div class="skeleton" style="height:14px; width:30px;"></div>
+              <div class="skeleton" style="height:14px; width:160px;"></div>
+              <div class="skeleton" style="height:28px; width:120px; border-radius:6px;"></div>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="table-wrapper" id="role-table-wrap" style="display:none;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="width:56px;">STT</th>
+                  <th>Tên vai trò</th>
+                  <th style="width:160px;">Ngày tạo</th>
+                  <th class="admin-only" style="width:140px; text-align:center;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="role-table-body">
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Empty state -->
+          <div id="role-empty" class="empty-state" style="display:none;">
+            <span class="empty-state-icon">🎭</span>
+            <p>Chưa có vai trò nào. Hãy thêm vai trò đầu tiên!</p>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /page-container -->
+  </main>
+</div><!-- /layout-wrapper -->
+
+
+<!-- ══════════════════════════════════════
+     MODAL: Thêm / Sửa vai trò
+     ══════════════════════════════════════ -->
+<div class="modal-overlay" id="role-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="role-modal-title">Thêm vai trò</h3>
+      <button class="modal-close" onclick="roleSession_closeModal()" aria-label="Đóng">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="role-input-name">Tên vai trò <span class="role-required">*</span></label>
+        <input
+          type="text"
+          id="role-input-name"
+          class="form-control"
+          placeholder="VD: Chủ trì, Thư ký, Báo cáo viên..."
+          maxlength="100"
+          autocomplete="off"
+        />
+        <div class="form-hint">Tối đa 100 ký tự</div>
+        <div class="role-input-error" id="role-input-error" style="display:none;"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="roleSession_closeModal()">Hủy</button>
+      <button class="btn" id="role-modal-submit" onclick="roleSession_submit()">Lưu</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     MODAL: Xác nhận xóa
+     ══════════════════════════════════════ -->
+<div class="modal-overlay" id="role-confirm-modal">
+  <div class="modal role-confirm-dialog">
+    <div class="modal-header">
+      <h3>Xác nhận xóa</h3>
+      <button class="modal-close" onclick="closeModal('role-confirm-modal')" aria-label="Đóng">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="role-confirm-content">
+        <div class="role-confirm-icon">⚠️</div>
+        <p>Bạn có chắc muốn xóa vai trò <strong id="role-confirm-name"></strong>?</p>
+        <p class="role-confirm-warning">Hành động này không thể hoàn tác.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('role-confirm-modal')">Hủy</button>
+      <button class="btn btn-danger" id="role-confirm-delete-btn" onclick="roleSession_confirmDelete()">Xóa</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/role-sessions.js"></script>
+
+</body>
+</html>

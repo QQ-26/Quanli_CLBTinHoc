@@ -34,10 +34,10 @@
   background: var(--white);
 }
 
-/* ── Stats grid (2 cột thay vì 4) ── */
+/* ── Stats grid ── */
 .dash-stats-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.25rem;
   margin-bottom: 1.5rem;
 }
@@ -59,6 +59,8 @@
 }
 .dash-stat-card:nth-child(1) { animation-delay: .05s; }
 .dash-stat-card:nth-child(2) { animation-delay: .10s; }
+.dash-stat-card:nth-child(3) { animation-delay: .15s; }
+.dash-stat-card:nth-child(4) { animation-delay: .20s; }
 
 .dash-stat-card:hover {
   transform: translateY(-3px);
@@ -116,7 +118,7 @@
 /* ── Wide row ── */
 .dash-bottom-row {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
   margin-bottom: 1.5rem;
 }
@@ -188,34 +190,21 @@
 .dash-member-mssv {
   font-size: 0.72rem; color: #333;
 }
-.dash-member-created {
-  font-size: 0.70rem; color: #999; margin-top: 0.2rem;
-}
 
-/* ── Chart wrapper với scroll ngang ── */
-.chart-wrapper {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  border-radius: 4px;
+/* ── Attendance breakdown bars ── */
+.dash-attend-list { display: flex; flex-direction: column; gap: 1rem; }
+.dash-attend-row-label {
+  display: flex; justify-content: space-between;
+  font-size: 0.78rem; color: #222; margin-bottom: 0.3rem;
 }
-.chart-wrapper canvas {
-  display: block;
+.dash-attend-row-label strong { font-weight: 800; }
+.dash-attend-track {
+  height: 7px; border-radius: 4px;
+  background: var(--border-color); overflow: hidden;
 }
-
-/* Scrollbar styling */
-.chart-wrapper::-webkit-scrollbar {
-  height: 6px;
-}
-.chart-wrapper::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-.chart-wrapper::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 3px;
-}
-.chart-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #999;
+.dash-attend-fill {
+  height: 100%; border-radius: 4px;
+  transition: width .9s cubic-bezier(.25,.8,.25,1);
 }
 
 /* ── Quick nav chips ── */
@@ -250,7 +239,7 @@
   .dash-bottom-row   { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
-  .dash-stats-grid { grid-template-columns: 1fr; }
+  .dash-stats-grid { grid-template-columns: 1fr 1fr; }
   .dash-topbar     { padding: 0.9rem 1rem; }
 }
 @media (max-width: 380px) {

@@ -53,7 +53,7 @@ function _renderTopbar() {
 function _renderStatsSkeleton() {
   const grid = document.getElementById('dash-stats-grid');
   if (!grid) return;
-  grid.innerHTML = Array(2).fill(`
+  grid.innerHTML = Array(4).fill(`
     <div class="card" style="padding:1.25rem; display:flex; gap:1rem; align-items:center;">
       <div class="skeleton" style="width:50px;height:50px;border-radius:50%;flex-shrink:0;"></div>
       <div style="flex:1">
@@ -73,7 +73,7 @@ async function _loadAll() {
     const [memberStatsRes, sessionsRes, membersRes, attendanceRes] = await Promise.allSettled([
       MemberAPI.getStats(),
       SessionAPI.getAll(),
-      MemberAPI.getAll(1, 100),
+      MemberAPI.getAll(1, 6),
       AttendanceAPI.getAll(),
     ]);
 
@@ -85,7 +85,8 @@ async function _loadAll() {
     _renderStatCards();
     _renderRecentSessions();
     _renderRecentMembers();
-    _renderAttendanceLineChart();
+    _renderAttendanceBreakdown();
+    _renderMemberStatusBreakdown();
 
   } catch (err) {
     console.error('[Dashboard]', err);
@@ -96,7 +97,7 @@ async function _loadAll() {
 }
 
 /* ════════════════════════════════════════
-   RENDER: STAT CARDS (chỉ 2 thẻ)
+   RENDER: STAT CARDS
    ════════════════════════════════════════ */
 function _renderStatCards() {
   const grid = document.getElementById('dash-stats-grid');
@@ -113,6 +114,14 @@ function _renderStatCards() {
   // Tổng buổi sinh hoạt
   const totalSessions = _dashState.sessions.length;
 
+  // Tỉ lệ có mặt
+  const allAtt = _dashState.attendanceAll;
+  let attendRate = '—';
+  if (allAtt.length > 0) {
+    const present = allAtt.filter(a => a.status === 'Có mặt').length;
+    attendRate = Math.round((present / allAtt.length) * 100) + '%';
+  }
+
   const cards = [
     {
       variant: 'dash-primary',
@@ -127,6 +136,20 @@ function _renderStatCards() {
       label: 'Buổi sinh hoạt',
       value: totalSessions,
       sub: 'Tổng cộng',
+    },
+    {
+      variant: 'dash-info',
+      icon: '✅',
+      label: 'Tỉ lệ có mặt',
+      value: attendRate,
+      sub: 'Trung bình toàn CLB',
+    },
+    {
+      variant: 'dash-warning',
+      icon: '📋',
+      label: 'Lượt điểm danh',
+      value: allAtt.length || '—',
+      sub: 'Tổng bản ghi',
     },
   ];
 
@@ -185,170 +208,112 @@ function _renderRecentSessions() {
 }
 
 /* ════════════════════════════════════════
-   RENDER: RECENT MEMBERS (3 ngày gần nhất)
+   RENDER: RECENT MEMBERS
    ════════════════════════════════════════ */
 function _renderRecentMembers() {
   const container = document.getElementById('dash-members-list');
   if (!container) return;
 
-  // Lọc thành viên tạo trong 3 ngày gần nhất
-  const now = new Date();
-  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-  
-  const recentMembers = _dashState.members.filter(m => {
-    const createdAt = new Date(m.createdAt);
-    return createdAt >= threeDaysAgo && createdAt <= now;
-  }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const members = _dashState.members;
 
-  if (!recentMembers.length) {
+  if (!members.length) {
     container.innerHTML = `
       <div class="empty-state">
         <span class="empty-state-icon">👤</span>
-        <p>Chưa có thành viên mới trong 3 ngày gần nhất.</p>
+        <p>Chưa có thành viên nào.</p>
       </div>`;
     return;
   }
 
-  container.innerHTML = recentMembers.map(m => {
+  container.innerHTML = members.map(m => {
     const initials = getInitials(m.fullName || m.mssv || '?');
+    const isActive = m.status === 'Hoạt động';
     return `
       <div class="dash-member-item">
         <div class="dash-member-avatar">${escapeHtml(initials)}</div>
         <div class="dash-member-body">
           <div class="dash-member-name">${escapeHtml(m.fullName || '—')}</div>
           <div class="dash-member-mssv">${escapeHtml(m.mssv || '—')}</div>
-          <div class="dash-member-created">${formatDateTime(m.createdAt)}</div>
+        </div>
+        <span class="badge ${isActive ? 'badge-success' : 'badge-secondary'}">
+          ${escapeHtml(m.status || '—')}
+        </span>
+      </div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════
+   RENDER: ATTENDANCE BREAKDOWN
+   ════════════════════════════════════════ */
+function _renderAttendanceBreakdown() {
+  const container = document.getElementById('dash-attend-list');
+  if (!container) return;
+
+  const all = _dashState.attendanceAll;
+
+  if (!all.length) {
+    container.innerHTML = `<p style="font-size:.82rem;color:#bbb;text-align:center;padding:1rem 0">Chưa có dữ liệu điểm danh.</p>`;
+    return;
+  }
+
+  // Đếm theo status
+  const total   = all.length;
+  const present = all.filter(a => a.status === 'Có mặt').length;
+  const excused = all.filter(a => a.status === 'Có phép').length;
+  const absent  = all.filter(a => a.status === 'Vắng').length;
+
+  const rows = [
+    { label: 'Có mặt', count: present, color: 'var(--secondary)' },
+    { label: 'Có phép', count: excused, color: 'var(--warning)' },
+    { label: 'Vắng',   count: absent,  color: 'var(--danger)' },
+  ];
+
+  container.innerHTML = rows.map(r => {
+    const pct = total > 0 ? Math.round((r.count / total) * 100) : 0;
+    return `
+      <div>
+        <div class="dash-attend-row-label">
+          <span>${escapeHtml(r.label)}</span>
+          <strong>${r.count} lượt (${pct}%)</strong>
+        </div>
+        <div class="dash-attend-track">
+          <div class="dash-attend-fill" style="width:${pct}%; background:${r.color};"></div>
         </div>
       </div>`;
   }).join('');
 }
 
 /* ════════════════════════════════════════
-   RENDER: ATTENDANCE LINE CHART
+   RENDER: MEMBER STATUS BREAKDOWN
    ════════════════════════════════════════ */
-function _renderAttendanceLineChart() {
-  const container = document.getElementById('dash-attendance-chart');
+function _renderMemberStatusBreakdown() {
+  const container = document.getElementById('dash-member-status-list');
   if (!container) return;
 
-  // Sắp xếp buổi sinh hoạt theo ngày
-  const sortedSessions = [..._dashState.sessions]
-    .sort((a, b) => new Date(a.sessionDate) - new Date(b.sessionDate));
-
-  if (!sortedSessions.length) {
-    container.innerHTML = `
-      <div class="empty-state" style="padding: 2rem;">
-        <span class="empty-state-icon">📭</span>
-        <p>Chưa có buổi sinh hoạt nào để thống kê.</p>
-      </div>`;
+  const stats = _dashState.memberStats;
+  if (!stats?.total || !stats?.detail?.length) {
+    container.innerHTML = `<p style="font-size:.82rem;color:#bbb;text-align:center;padding:1rem 0">Chưa có dữ liệu thành viên.</p>`;
     return;
   }
 
-  // Tính số lượng thành viên có mặt cho mỗi buổi
-  const sessionAttendance = sortedSessions.map(session => {
-    const sessionAttendances = _dashState.attendanceAll.filter(
-      a => a.sessionId._id === session._id && a.status === 'Có mặt'
-    );
-    return {
-      sessionId: session._id,
-      sessionName: session.sessionName,
-      sessionDate: new Date(session.sessionDate),
-      presentCount: sessionAttendances.length,
-    };
-  });
+  const total = stats.total;
+  const colors = {
+    'Hoạt động':        'var(--secondary)',
+    'Không hoạt động':  'var(--danger)',
+  };
 
-  // Chuẩn bị dữ liệu cho Chart.js
-  const labels = sessionAttendance.map(s => 
-    s.sessionDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
-  );
-  const data = sessionAttendance.map(s => s.presentCount);
-
-  // Tính chiều rộng canvas dựa trên số lượng buổi
-  const canvasWidth = Math.max(600, sortedSessions.length * 60);
-
-  // Tạo canvas wrapper với scroll ngang
-  container.innerHTML = `
-    <div class="chart-wrapper" style="overflow-x: auto; width: 100%;">
-      <canvas id="attendance-chart-canvas" style="min-width: ${canvasWidth}px; height: 300px;"></canvas>
-    </div>`;
-
-  // Đợi DOM render xong rồi tạo chart
-  setTimeout(() => {
-    const canvas = document.getElementById('attendance-chart-canvas');
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Số thành viên có mặt',
-          data: data,
-          borderColor: 'var(--secondary)',
-          backgroundColor: 'rgba(28, 200, 138, 0.1)',
-          borderWidth: 2.5,
-          fill: true,
-          tension: 0.4,
-          pointRadius: 5,
-          pointBackgroundColor: 'var(--secondary)',
-          pointBorderColor: 'var(--white)',
-          pointBorderWidth: 2,
-          pointHoverRadius: 7,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: true,
-            labels: {
-              font: { size: 13, weight: '600' },
-              color: '#333',
-              padding: 15,
-              usePointStyle: true,
-            },
-          },
-          tooltip: {
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            padding: 10,
-            titleFont: { size: 13, weight: '600' },
-            bodyFont: { size: 12 },
-            borderColor: 'var(--secondary)',
-            borderWidth: 1,
-            callbacks: {
-              label: function(context) {
-                return `${context.dataset.label}: ${context.parsed.y} người`;
-              }
-            }
-          },
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'Số thành viên',
-            },
-            ticks: {
-              font: { size: 11 },
-              color: '#666',
-            },
-            grid: {
-              color: 'rgba(0, 0, 0, 0.05)',
-            },
-          },
-          x: {
-            ticks: {
-              font: { size: 11 },
-              color: '#666',
-            },
-            grid: {
-              display: false,
-            },
-          },
-        },
-      },
-    });
-  }, 100);
+  container.innerHTML = stats.detail.map(d => {
+    const pct   = Math.round((d.count / total) * 100);
+    const color = colors[d._id] || 'var(--info)';
+    return `
+      <div>
+        <div class="dash-attend-row-label">
+          <span>${escapeHtml(d._id || 'Khác')}</span>
+          <strong>${d.count} người (${pct}%)</strong>
+        </div>
+        <div class="dash-attend-track">
+          <div class="dash-attend-fill" style="width:${pct}%; background:${color};"></div>
+        </div>
+      </div>`;
+  }).join('');
 }

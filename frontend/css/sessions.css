@@ -1,0 +1,943 @@
+/* ============================================================
+   sessions.css — Trang quản lý buổi sinh hoạt CLB Tin Học
+   ============================================================ */
+
+/* ── Header actions ── */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 0.65rem;
+    font-size: 0.85rem;
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.search-input {
+    padding: 0.45rem 0.75rem 0.45rem 2rem;
+    font-family: var(--font-family);
+    font-size: 0.85rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: var(--white);
+    color: var(--dark);
+    width: 220px;
+    transition: var(--transition);
+    outline: none;
+}
+
+.search-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(78,115,223,.15);
+}
+
+/* ── Stats row ── */
+.session-stats {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.stat-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 0.75rem 1.2rem;
+    box-shadow: var(--shadow-card);
+    flex: 1;
+    min-width: 140px;
+    border-left: 4px solid var(--primary);
+    transition: var(--transition);
+}
+
+.stat-chip:hover { transform: translateY(-2px); }
+
+.stat-chip-green { border-left-color: var(--secondary); }
+.stat-chip-gray  { border-left-color: #b0b3be; }
+
+.stat-chip-icon { font-size: 1.4rem; }
+.stat-chip-value { font-size: 1.4rem; font-weight: 800; color: var(--dark); line-height: 1; }
+.stat-chip-label { font-size: 0.72rem; color: #aaa; font-weight: 600; margin-top: 0.1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ── Sessions grid ── */
+.sessions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+/* ── Session card ── */
+.session-card {
+    background: var(--white);
+    border-radius: 0.6rem;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    animation: fadeUp 0.3s ease both;
+}
+
+.session-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0.5rem 2rem rgba(58,59,69,.18);
+    border-color: var(--primary);
+}
+
+.session-card.upcoming { border-top: 3px solid var(--secondary); }
+.session-card.past     { border-top: 3px solid #b0b3be; }
+
+/* Card header */
+.session-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.85rem 1rem 0.5rem;
+    background: var(--light);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.session-card-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+}
+
+.date-day {
+    font-size: 1.9rem;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1;
+}
+
+.date-month {
+    font-size: 0.78rem;
+    color: #888;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.date-year {
+    font-size: 0.76rem;
+    color: #bbb;
+    font-weight: 600;
+}
+
+.session-card-actions {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.card-action-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--white);
+    cursor: pointer;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    padding: 0;
+    line-height: 1;
+}
+
+.card-action-btn:hover        { background: var(--primary); border-color: var(--primary); transform: scale(1.1); }
+.card-action-btn.danger:hover { background: var(--danger); border-color: var(--danger); }
+.card-action-btn.info:hover   { background: var(--info); border-color: var(--info); }
+
+/* Card body */
+.session-card-body {
+    padding: 0.85rem 1rem;
+    flex: 1;
+}
+
+.session-card-name {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--dark);
+    margin-bottom: 0.55rem;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.session-card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.84rem;
+    color: #888;
+    font-weight: 500;
+}
+
+.session-card-instructors {
+    margin-top: 0.55rem;
+    font-size: 0.84rem;
+    color: var(--dark);
+    font-weight: 600;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.instr-role {
+    font-weight: 400;
+    color: #aaa;
+}
+
+/* Card footer */
+.session-card-footer {
+    padding: 0.6rem 1rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--light);
+}
+
+.session-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.22rem 0.65rem;
+    border-radius: 0.2rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+/* ── Instructor rows in modal ── */
+.instructors-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.instructor-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.instructor-row .form-control { flex: 1; }
+.instructor-row .btn { flex-shrink: 0; }
+
+/* ── Modal large / xl ── */
+.modal-lg  { max-width: 640px; }
+.modal-xl  { max-width: 860px; }
+
+/* ── Detail info grid ── */
+.session-detail-info {
+    margin-bottom: 1.25rem;
+}
+
+.detail-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem 1.5rem;
+}
+
+.detail-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.detail-info-label {
+    font-size: 0.72rem;
+    color: #aaa;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.detail-info-value {
+    font-size: 0.9rem;
+    color: var(--dark);
+    font-weight: 600;
+}
+
+.instr-tag {
+    display: inline-block;
+    background: rgba(78,115,223,.09);
+    color: var(--primary-dark);
+    border-radius: 0.2rem;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-right: 0.3rem;
+    margin-bottom: 0.2rem;
+}
+
+/* ── Section divider ── */
+.section-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.25rem 0 1rem;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--dark);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.section-divider::before,
+.section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
+}
+
+/* ── Attendance toolbar ── */
+.attendance-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.attendance-stats {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.attendance-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.att-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.22rem 0.65rem;
+    border-radius: 0.25rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+.att-present { background: rgba(28,200,138,.1); color: var(--secondary-dark); border-color: rgba(28,200,138,.2); }
+.att-absent  { background: rgba(231,74,59,.1);  color: var(--danger-dark);    border-color: rgba(231,74,59,.2); }
+.att-excused { background: rgba(246,194,62,.15); color: #8a6d00;               border-color: rgba(246,194,62,.3); }
+.att-total   { background: rgba(78,115,223,.1);  color: var(--primary-dark);   border-color: rgba(78,115,223,.2); }
+
+/* ── Attendance table form controls ── */
+.form-control-sm {
+    padding: 0.28rem 0.55rem;
+    font-size: 0.8rem;
+}
+
+.att-status { max-width: 140px; }
+.att-note   { min-width: 140px; }
+
+/* ── Member cell ── */
+.member-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.member-avatar-sm {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--info));
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+}
+
+/* ── Delete modal ── */
+.delete-warning {
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.delete-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.delete-warning p {
+    font-size: 0.9rem;
+    color: var(--dark);
+    margin-bottom: 0.5rem;
+}
+
+.delete-note {
+    font-size: 0.8rem !important;
+    color: var(--danger) !important;
+    background: rgba(231,74,59,.07);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.75rem !important;
+}
+
+/* ── Required asterisk ── */
+.required { color: var(--danger); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .sessions-grid { grid-template-columns: 1fr; }
+    .session-stats { flex-direction: column; }
+    .stat-chip     { min-width: unset; flex: 1 1 100%; }
+    .detail-info-grid { grid-template-columns: 1fr; }
+    .attendance-toolbar { flex-direction: column; align-items: flex-start; }
+    .modal-lg, .modal-xl { max-width: 100%; }
+    .search-input { width: 100%; }
+    .header-actions { width: 100%; }
+    .att-status { max-width: 100%; }
+}
+
+/* ═══════════════════════════════════════════════════
+   THÊM MỚI: Cột Tham gia + Biểu đồ thống kê
+   ═══════════════════════════════════════════════════ */
+
+/* ── Tham gia toggle switch ── */
+.th-participate {
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.check-all-wrap {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.check-all-wrap input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.td-center { text-align: center; }
+
+/* Toggle pill */
+.participate-toggle {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 22px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.participate-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.participate-slider {
+    position: absolute;
+    inset: 0;
+    background: #d1d5db;
+    border-radius: 22px;
+    transition: 0.25s;
+}
+
+.participate-slider::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    left: 3px;
+    top: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.25s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.18);
+}
+
+.participate-toggle input:checked + .participate-slider {
+    background: var(--secondary);
+}
+
+.participate-toggle input:checked + .participate-slider::before {
+    transform: translateX(20px);
+}
+
+.participate-toggle input:focus + .participate-slider {
+    box-shadow: 0 0 0 3px rgba(28,200,138,.2);
+}
+
+/* Rows not joined */
+.row-not-joined {
+    background: rgba(248,249,252,.6) !important;
+    opacity: 0.65;
+}
+
+.row-not-joined:hover { background: rgba(242,245,255,.8) !important; }
+
+.att-na {
+    color: #ccc;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* ── New att-badge: Tham gia ── */
+.att-joined {
+    background: rgba(78,115,223,.1);
+    color: var(--primary-dark);
+    border-color: rgba(78,115,223,.2);
+}
+
+/* ── Chart area ── */
+.attendance-chart-area {
+    margin-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+.chart-empty {
+    text-align: center;
+    color: #bbb;
+    font-size: 0.85rem;
+    padding: 1.5rem 0;
+}
+
+.chart-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+    animation: fadeUp 0.3s ease;
+}
+
+/* Donut */
+.chart-donut-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.chart-section-title {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--dark);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.1rem;
+    text-align: center;
+}
+
+.donut-svg { display: block; filter: drop-shadow(0 2px 8px rgba(0,0,0,.08)); }
+
+.donut-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    color: var(--dark);
+    font-weight: 600;
+}
+
+.donut-legend span {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+/* Bars */
+.chart-bars-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.chart-bars-wrap .chart-section-title {
+    text-align: left;
+}
+
+.chart-bar-group {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.chart-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--dark);
+    min-width: 130px;
+    gap: 0.4rem;
+}
+
+.chart-bar-count {
+    color: #aaa;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.chart-bar-track {
+    flex: 1;
+    height: 22px;
+    background: #f0f2f5;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.chart-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(.4,0,.2,1);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 6px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: white;
+    min-width: 4px;
+}
+
+.bar-present    { background: linear-gradient(90deg, #1cc88a, #17a673); }
+.bar-absent     { background: linear-gradient(90deg, #e74a3b, #be2617); }
+.bar-excused    { background: linear-gradient(90deg, #f6c23e, #dda20a); color: #5a3e00; }
+.bar-notpresent { background: linear-gradient(90deg, #858796, #5a5c69); }
+
+.chart-bar-pct-out {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--dark);
+    min-width: 34px;
+    text-align: right;
+}
+
+/* Summary cards */
+.chart-summary-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    margin-top: 0.25rem;
+}
+
+.chart-summary-card {
+    border-radius: var(--border-radius);
+    padding: 0.7rem 0.85rem;
+    text-align: center;
+    border: 1px solid transparent;
+}
+
+.summary-present {
+    background: rgba(28,200,138,.1);
+    border-color: rgba(28,200,138,.25);
+}
+
+.summary-absent {
+    background: rgba(231,74,59,.08);
+    border-color: rgba(231,74,59,.2);
+}
+
+.summary-joined {
+    background: rgba(78,115,223,.09);
+    border-color: rgba(78,115,223,.2);
+}
+
+.summary-val {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--dark);
+    line-height: 1;
+}
+
+.summary-lbl {
+    font-size: 0.7rem;
+    color: #aaa;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 0.25rem;
+}
+
+/* Responsive chart */
+@media (max-width: 640px) {
+    .chart-layout {
+        grid-template-columns: 1fr;
+    }
+    .chart-donut-wrap {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .chart-bar-label { min-width: 100px; font-size: 0.72rem; }
+    .chart-summary-row { grid-template-columns: 1fr 1fr; }
+    .chart-bar-group { flex-wrap: wrap; }
+}
+
+/* ═══════════════════════════════════════════════════
+   THÊM MỚI: Loại buổi + Tab filter
+   ═══════════════════════════════════════════════════ */
+
+/* ── Stat chip thêm màu ── */
+.stat-chip-blue   { border-left-color: var(--primary); }
+.stat-chip-orange { border-left-color: #fd7e14; }
+
+/* ── Tab filter ── */
+.tab-filter {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    padding: 0.38rem 1rem;
+    font-family: var(--font-family);
+    font-size: 0.82rem;
+    font-weight: 700;
+    border: 1.5px solid var(--border-color);
+    border-radius: 2rem;
+    background: var(--white);
+    color: var(--dark);
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.tab-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    box-shadow: 0 2px 8px rgba(78,115,223,.3);
+}
+
+/* ── Type badge on card footer ── */
+.type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.22rem 0.65rem;
+    border-radius: 0.2rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.type-regular {
+    background: rgba(78,115,223,.1);
+    color: var(--primary-dark);
+}
+
+.type-other {
+    background: rgba(253,126,20,.1);
+    color: #c96000;
+}
+
+/* ── Card borders per type ── */
+.card-regular.upcoming { border-top: 3px solid var(--secondary); }
+.card-regular.past     { border-top: 3px solid #b0b3be; }
+.card-other.upcoming   { border-top: 3px solid #fd7e14; }
+.card-other.past       { border-top: 3px solid #b0b3be; }
+
+/* Footer now needs flex + gap */
+.session-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+/* ── Type radio group in modal ── */
+.type-radio-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    margin-bottom: 0.25rem;
+}
+
+.type-radio-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.85rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+    position: relative;
+}
+
+.type-radio-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.type-radio-option:hover {
+    border-color: var(--primary);
+    background: rgba(78,115,223,.04);
+}
+
+.type-radio-option.selected {
+    border-color: var(--primary);
+    background: rgba(78,115,223,.07);
+    box-shadow: 0 0 0 3px rgba(78,115,223,.12);
+}
+
+.type-radio-option.selected .type-radio-title {
+    color: var(--primary-dark);
+}
+
+.type-radio-icon {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.type-radio-title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--dark);
+    line-height: 1.3;
+}
+
+.type-radio-desc {
+    font-size: 0.74rem;
+    color: #aaa;
+    margin-top: 0.15rem;
+    line-height: 1.4;
+}
+
+/* Responsive type radio */
+@media (max-width: 540px) {
+    .type-radio-group { grid-template-columns: 1fr; }
+}
+
+/* ── Pagination row ── */
+.sessions-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 0.6rem 0.25rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.pagination-info {
+    font-size: 0.8rem;
+    color: #aaa;
+    font-weight: 600;
+}
+
+.pagination-ellipsis {
+    padding: 0.3rem 0.2rem;
+    font-size: 0.85rem;
+    color: #bbb;
+    user-select: none;
+}
+
+@media (max-width: 480px) {
+    .sessions-pagination { justify-content: center; }
+    .pagination-info { width: 100%; text-align: center; }
+}
+
+/* ═══════════════════════════════════════════════════
+   Custom scrollbar cho modal chi tiết + điểm danh
+   ═══════════════════════════════════════════════════ */
+
+/* Modal xl — custom scrollbar */
+.modal-xl {
+    scrollbar-width: thin;
+    scrollbar-color: #c5cbe8 #f0f2f5;
+}
+
+.modal-xl::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-xl::-webkit-scrollbar-track {
+    background: #f0f2f5;
+    border-radius: 0 0.6rem 0.6rem 0;
+}
+
+.modal-xl::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #b0b8e0, #8896d0);
+    border-radius: 6px;
+    border: 1px solid #f0f2f5;
+}
+
+.modal-xl::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--primary), var(--primary-dark));
+}
+
+/* Table wrapper trong modal — custom scrollbar ngang */
+.modal-xl .table-wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: #c5cbe8 #f0f2f5;
+}
+
+.modal-xl .table-wrapper::-webkit-scrollbar {
+    height: 5px;
+}
+
+.modal-xl .table-wrapper::-webkit-scrollbar-track {
+    background: #f0f2f5;
+    border-radius: 4px;
+}
+
+.modal-xl .table-wrapper::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #b0b8e0, #8896d0);
+    border-radius: 4px;
+}
+
+.modal-xl .table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}

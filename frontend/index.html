@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đăng nhập - CLB Tin Học</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Nunito:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --primary: #4f46e5;
+        --primary-light: #818cf8;
+        --success: #10b981;
+        --danger: #ef4444;
+      }
+
+      body {
+        font-family: "Be Vietnam Pro", sans-serif;
+        min-height: 100vh;
+        height: 100vh;
+        width: 100vw;
+        display: flex;
+        background: #0a0e1a;
+        overflow: hidden;
+      }
+
+      /* ---- LEFT PANEL ---- */
+      .left-panel {
+        width: 52%;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px;
+        overflow: hidden;
+        background: linear-gradient(
+          145deg,
+          #0f1729 0%,
+          #1a0e35 50%,
+          #0d1f3c 100%
+        );
+      }
+
+      /* Animated mesh background */
+      .left-panel::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse 60% 50% at 20% 30%,
+            rgba(99, 102, 241, 0.25) 0%,
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 50% 60% at 80% 70%,
+            rgba(139, 92, 246, 0.2) 0%,
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 40% 40% at 60% 20%,
+            rgba(59, 130, 246, 0.15) 0%,
+            transparent 70%
+          );
+        animation: meshPulse 8s ease-in-out infinite alternate;
+      }
+
+      @keyframes meshPulse {
+        0% {
+          opacity: 0.7;
+          transform: scale(1);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1.05);
+        }
+      }
+
+      /* Grid pattern overlay */
+      .left-panel::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 40px 40px;
+      }
+
+      .left-content {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+      }
+
+      /* Floating orbs */
+      .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(1px);
+        animation: floatOrb linear infinite;
+        z-index: 1;
+      }
+
+      .orb-1 {
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(
+          circle,
+          rgba(99, 102, 241, 0.5),
+          transparent 70%
+        );
+        top: 10%;
+        left: 15%;
+        animation-duration: 12s;
+      }
+      .orb-2 {
+        width: 120px;
+        height: 120px;
+        background: radial-gradient(
+          circle,
+          rgba(139, 92, 246, 0.4),
+          transparent 70%
+        );
+        bottom: 20%;
+        right: 20%;
+        animation-duration: 9s;
+        animation-delay: -4s;
+      }
+      .orb-3 {
+        width: 80px;
+        height: 80px;
+        background: radial-gradient(
+          circle,
+          rgba(59, 130, 246, 0.5),
+          transparent 70%
+        );
+        top: 55%;
+        left: 8%;
+        animation-duration: 7s;
+        animation-delay: -2s;
+      }
+
+      @keyframes floatOrb {
+        0%,
+        100% {
+          transform: translateY(0) translateX(0) scale(1);
+        }
+        33% {
+          transform: translateY(-20px) translateX(10px) scale(1.05);
+        }
+        66% {
+          transform: translateY(10px) translateX(-15px) scale(0.95);
+        }
+      }
+
+      /* Logo */
+      .logo-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        margin-bottom: 40px;
+      }
+
+      .logo-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow:
+          0 0 40px rgba(99, 102, 241, 0.4),
+          0 0 80px rgba(99, 102, 241, 0.15);
+        flex-shrink: 0;
+        background: #fff;
+      }
+
+      .logo-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+      }
+
+      .logo-text h1 {
+        font-family: "Nunito", sans-serif;
+        font-size: 26px;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -0.5px;
+        text-align: left;
+      }
+
+      .logo-text p {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.5);
+        text-align: left;
+        margin-top: 2px;
+      }
+
+      /* Headline */
+      .left-headline {
+        font-family: "Nunito", sans-serif;
+        font-size: 42px;
+        font-weight: 800;
+        color: #fff;
+        line-height: 1.15;
+        margin-bottom: 16px;
+        letter-spacing: -0.5px;
+      }
+
+      .left-headline span {
+        background: linear-gradient(90deg, #818cf8, #a78bfa, #60a5fa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .left-sub {
+        font-size: 16px;
+        color: rgba(255, 255, 255, 0.5);
+        line-height: 1.6;
+        max-width: 340px;
+        margin: 0 auto 40px;
+      }
+
+      /* Feature list */
+      .features {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        text-align: left;
+      }
+
+      .feature-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 18px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        backdrop-filter: blur(8px);
+        transition: all 0.3s;
+      }
+
+      .feature-item:hover {
+        background: rgba(255, 255, 255, 0.09);
+        transform: translateX(4px);
+      }
+
+      .feature-icon {
+        font-size: 22px;
+        width: 36px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+
+      .feature-text strong {
+        display: block;
+        font-size: 14px;
+        color: #e2e8f0;
+        font-weight: 600;
+      }
+
+      .feature-text span {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      /* ---- RIGHT PANEL ---- */
+      .right-panel {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 40px;
+        background: #f8fafc;
+        position: relative;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      /* Subtle geometric corner accent */
+      .right-panel::before {
+        content: "";
+        position: absolute;
+        top: -60px;
+        right: -60px;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(
+          circle,
+          rgba(99, 102, 241, 0.08),
+          transparent 70%
+        );
+        border-radius: 50%;
+      }
+
+      .right-panel::after {
+        content: "";
+        position: absolute;
+        bottom: -80px;
+        left: -80px;
+        width: 280px;
+        height: 280px;
+        background: radial-gradient(
+          circle,
+          rgba(139, 92, 246, 0.06),
+          transparent 70%
+        );
+        border-radius: 50%;
+      }
+
+      .form-card {
+        width: 100%;
+        max-width: 420px;
+        position: relative;
+        z-index: 1;
+        animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .form-welcome {
+        margin-bottom: 36px;
+      }
+
+      .form-welcome .eyebrow {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--primary);
+        margin-bottom: 8px;
+      }
+
+      .form-welcome h2 {
+        font-family: "Nunito", sans-serif;
+        font-size: 30px;
+        font-weight: 700;
+        color: #0f172a;
+        letter-spacing: -0.5px;
+        margin-bottom: 8px;
+      }
+
+      .form-welcome p {
+        font-size: 14px;
+        color: #64748b;
+      }
+
+      /* Form group */
+      .fgroup {
+        margin-bottom: 20px;
+      }
+
+      .fgroup label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+        letter-spacing: 0.2px;
+      }
+
+      .fgroup label .field-icon {
+        font-size: 14px;
+      }
+
+      .input-wrap {
+        position: relative;
+      }
+
+      .fgroup input {
+        width: 100%;
+        padding: 13px 46px 13px 16px;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 15px;
+        font-family: "Be Vietnam Pro", sans-serif;
+        color: #111827;
+        background: #fff;
+        transition: all 0.2s;
+        outline: none;
+      }
+
+      .fgroup input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+      }
+
+      .fgroup input::placeholder {
+        color: #9ca3af;
+      }
+
+      .input-suffix {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        font-size: 18px;
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+        display: flex;
+        align-items: center;
+      }
+
+      /* Alert */
+      .login-alert {
+        padding: 12px 16px;
+        border-radius: 10px;
+        font-size: 14px;
+        margin-bottom: 20px;
+        display: none;
+        animation: fadeIn 0.3s ease;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .login-alert.show {
+        display: flex;
+      }
+      .login-alert.error {
+        background: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fecaca;
+      }
+      .login-alert.success {
+        background: #f0fdf4;
+        color: #16a34a;
+        border: 1px solid #bbf7d0;
+      }
+
+      /* Submit button */
+      .btn-login {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 700;
+        font-family: "Nunito", sans-serif;
+        cursor: pointer;
+        transition: all 0.25s;
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        color: #fff;
+        letter-spacing: 0.3px;
+        position: relative;
+        overflow: hidden;
+        margin-top: 8px;
+      }
+
+      .btn-login::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        opacity: 0;
+        transition: opacity 0.25s;
+      }
+
+      .btn-login:hover::before {
+        opacity: 1;
+      }
+      .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+      }
+      .btn-login:active {
+        transform: translateY(0);
+      }
+      .btn-login:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-login span {
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Divider */
+      .form-footer {
+        text-align: center;
+        margin-top: 28px;
+        font-size: 13px;
+        color: #94a3b8;
+      }
+
+      /* Compat with showAlert utility */
+      .login-alert.alert-error,
+      #loginAlert.alert-error {
+        display: flex !important;
+        background: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fecaca;
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-size: 14px;
+        margin-bottom: 20px;
+        animation: fadeIn 0.3s ease;
+      }
+      .login-alert.alert-success,
+      #loginAlert.alert-success {
+        display: flex !important;
+        background: #f0fdf4;
+        color: #16a34a;
+        border: 1px solid #bbf7d0;
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-size: 14px;
+        margin-bottom: 20px;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      /* Toast container - fixed position, không ảnh hưởng layout */
+      #toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        pointer-events: none;
+      }
+
+      .toast {
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #1e293b;
+        color: #f1f5f9;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        pointer-events: auto;
+        animation: fadeIn 0.3s ease;
+      }
+
+      .toast.success { background: #166534; color: #dcfce7; }
+      .toast.danger  { background: #991b1b; color: #fee2e2; }
+      .toast.warning { background: #92400e; color: #fef3c7; }
+
+      /* Responsive */
+      @media (max-width: 900px) {
+        .left-panel {
+          display: none;
+        }
+        .right-panel {
+          background: linear-gradient(145deg, #0f1729, #1a0e35);
+        }
+        .form-welcome h2 {
+          color: #f1f5f9;
+        }
+        .form-welcome .eyebrow {
+          color: #818cf8;
+        }
+        .form-welcome p {
+          color: #94a3b8;
+        }
+        .fgroup label {
+          color: #cbd5e1;
+        }
+        .fgroup input {
+          background: rgba(255, 255, 255, 0.07);
+          border-color: rgba(255, 255, 255, 0.12);
+          color: #f1f5f9;
+        }
+        .fgroup input::placeholder {
+          color: rgba(255, 255, 255, 0.3);
+        }
+        .fgroup input:focus {
+          border-color: #6366f1;
+          background: rgba(255, 255, 255, 0.1);
+        }
+        .form-footer {
+          color: #475569;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+
+      <div class="left-content">
+        <div class="logo-wrap">
+          <div class="logo-icon">
+            <!-- 📁 Thay đường dẫn bên dưới bằng ảnh logo của bạn -->
+            <img
+              src="img/logoCLBTin.jpg"
+              alt="Logo CLB Tin Học"
+              onerror="
+                this.style.display = 'none';
+                this.parentElement.innerHTML = '💻';
+              "
+            />
+          </div>
+          <div class="logo-text">
+            <h1>CLB TIN HỌC</h1>
+            <p>Trường Đại học Nha Trang</p>
+          </div>
+        </div>
+
+        <div class="left-headline">
+          Quản lý thành viên<br /><span>Câu lạc bộ</span>
+        </div>
+
+        <p class="left-sub">
+          Hệ thống quản lý thành viên, buổi sinh hoạt và điểm danh.
+        </p>
+
+        <div class="features">
+          <div class="feature-item">
+            <div class="feature-icon">👥</div>
+            <div class="feature-text">
+              <strong>Quản lý thành viên</strong>
+              <span>Theo dõi đầy đủ thông tin & vai trò</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">📅</div>
+            <div class="feature-text">
+              <strong>Buổi sinh hoạt</strong>
+              <span>Lên lịch & điểm danh tự động</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">📊</div>
+            <div class="feature-text">
+              <strong>Thống kê trực quan</strong>
+              <span>Biểu đồ & báo cáo tức thì</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="form-card">
+        <div class="form-welcome">
+          <p class="eyebrow">Chào mừng trở lại</p>
+          <h2>Đăng nhập</h2>
+          <p>Nhập thông tin tài khoản để tiếp tục</p>
+        </div>
+
+        <div id="loginAlert" class="login-alert"></div>
+
+        <form id="loginForm" autocomplete="on">
+          <div class="fgroup">
+            <label for="mssv">
+              <span class="field-icon">🎓</span> Mã số sinh viên (MSSV)
+            </label>
+            <div class="input-wrap">
+              <input
+                type="text"
+                id="mssv"
+                placeholder="Nhập MSSV của bạn"
+                required
+                autocomplete="username"
+              />
+            </div>
+          </div>
+
+          <div class="fgroup">
+            <label for="password">
+              <span class="field-icon">🔒</span> Mật khẩu
+            </label>
+            <div class="input-wrap">
+              <input
+                type="password"
+                id="password"
+                placeholder="Nhập mật khẩu"
+                required
+                autocomplete="current-password"
+              />
+              <button
+                type="button"
+                class="input-suffix"
+                onclick="togglePasswordVisibility('password', this)"
+                title="Ẩn/Hiện mật khẩu"
+              >
+                👁️
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-login" id="loginBtn">
+            <span>Đăng nhập →</span>
+          </button>
+        </form>
+
+        <div class="form-footer">
+          CLB Tin Học &nbsp;·&nbsp; Hệ thống quản lý nội bộ
+        </div>
+      </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/login.js"></script>
+
+    <script>
+      // Override login alert for new UI
+      const _origLogin = document.getElementById("loginForm").onsubmit;
+      const alertEl = document.getElementById("loginAlert");
+
+      function showLoginAlert(msg, type) {
+        alertEl.className = "login-alert show " + type;
+        alertEl.innerHTML = (type === "error" ? "⚠️ " : "✅ ") + msg;
+      }
+
+      // Patch loginAlert to use new styles
+      const observer = new MutationObserver(() => {
+        const legacy = document.getElementById("loginAlert");
+        if (legacy && legacy.classList.contains("alert-error")) {
+          legacy.classList.remove("alert", "alert-error");
+          legacy.classList.add("login-alert", "show", "error");
+        }
+      });
+      observer.observe(alertEl, { attributes: true, childList: true });
+    </script>
+  </body>
+</html>

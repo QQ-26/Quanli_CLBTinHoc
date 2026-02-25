@@ -17,6 +17,10 @@ let _filterType       = 'all';   // 'all' | 'regular' | 'other'
 let _currentPage      = 1;
 const PAGE_SIZE       = 8;
 let _participateSet   = {};      // { sessionId: Set<memberId> }
+let _registerSet      = {};      // { sessionId: bool } — user hiện tại đã đăng ký chưa
+let _attSearchKeyword = '';      // tìm kiếm trong bảng điểm danh
+let _attSortAZ        = true;    // sắp xếp A-Z theo tên (mặc định bật)
+let _statusCache      = {};      // { memberId: status } — cache toàn bộ, không phụ thuộc filter DOM
 
 
 // ─── SessionType local persistence ───────────────────────────
@@ -42,7 +46,20 @@ function _applyTypeMap(sessions) {
     });
 }
 
-// ─── Init ─────────────────────────────────────────────────────
+// ─── Register local persistence ───────────────────────────────
+function _getRegKey() {
+    const user = getCurrentUser();
+    return `clb_register_${user?.id || 'guest'}`;
+}
+function _loadRegisterSet() {
+    try { return JSON.parse(localStorage.getItem(_getRegKey()) || '{}'); } catch(e) { return {}; }
+}
+function _saveRegisterSet() {
+    try { localStorage.setItem(_getRegKey(), JSON.stringify(_registerSet)); } catch(e) {}
+}
+function _isRegistered(sessionId) {
+    return !!_registerSet[sessionId];
+}
 document.addEventListener('DOMContentLoaded', async () => {
     requireAuth();
     initLayout('sessions');
@@ -89,6 +106,9 @@ async function loadAll() {
 
         // Khôi phục sessionType từ localStorage (vì backend chưa lưu field này)
         _applyTypeMap(_sessions);
+
+        // Khôi phục trạng thái đăng ký từ localStorage
+        _registerSet = _loadRegisterSet();
 
         renderStats();
         renderSessions();
@@ -254,6 +274,10 @@ function renderSessions() {
                 <span class="session-status-badge ${isPast ? 'badge-secondary' : 'badge-success'}">
                     ${isPast ? '✅ Đã diễn ra' : '🔜 Sắp diễn ra'}
                 </span>
+                ${!isPast ? `<button class="btn-register ${_isRegistered(s._id) ? 'registered' : ''}"
+                    onclick="event.stopPropagation(); toggleRegister('${s._id}', this)">
+                    ${_isRegistered(s._id) ? '✅ Đã đăng ký' : '📝 Đăng ký'}
+                </button>` : ''}
             </div>
         </div>`;
     }).join('');
@@ -310,11 +334,14 @@ function gotoPage(p) {
 // ─── Modal: Thêm/Sửa ──────────────────────────────────────────
 function openAddModal() {
     document.getElementById('sessionModalTitle').textContent = 'Thêm buổi sinh hoạt';
-    document.getElementById('sessionId').value       = '';
-    document.getElementById('sessionName').value     = '';
-    document.getElementById('sessionDate').value     = '';
-    document.getElementById('sessionLocation').value = '';
-    document.getElementById('sessionMaxParticipants').value = '';
+    document.getElementById('sessionId').value               = '';
+    document.getElementById('sessionName').value             = '';
+    document.getElementById('sessionDateOnly').value         = '';
+    document.getElementById('sessionStartTime').value        = '';
+    document.getElementById('sessionEndTime').value          = '';
+    document.getElementById('sessionLocation').value         = '';
+    document.getElementById('sessionMaxParticipants').value  = '';
+    document.getElementById('sessionDescription').value      = '';
     // reset radio to regular
     document.querySelectorAll('input[name="sessionType"]').forEach(r => r.checked = r.value === 'regular');
     document.querySelectorAll('.type-radio-option').forEach(o => o.classList.toggle('selected', o.querySelector('input').value === 'regular'));
@@ -331,18 +358,22 @@ function openEditModal(id) {
     document.getElementById('sessionName').value            = s.sessionName || '';
     document.getElementById('sessionLocation').value        = s.location || '';
     document.getElementById('sessionMaxParticipants').value = s.maxParticipants || '';
+    document.getElementById('sessionDescription').value     = s.description || '';
     const sType = s.sessionType || 'regular';
     document.querySelectorAll('input[name="sessionType"]').forEach(r => r.checked = r.value === sType);
     document.querySelectorAll('.type-radio-option').forEach(o => o.classList.toggle('selected', o.querySelector('input').value === sType));
 
+    const pad = n => String(n).padStart(2,'0');
     if (s.sessionDate) {
         const d = new Date(s.sessionDate);
-        const pad = n => String(n).padStart(2,'0');
-        document.getElementById('sessionDate').value =
-            `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        document.getElementById('sessionDateOnly').value  = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+        document.getElementById('sessionStartTime').value = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
     } else {
-        document.getElementById('sessionDate').value = '';
+        document.getElementById('sessionDateOnly').value  = '';
+        document.getElementById('sessionStartTime').value = '';
     }
+    const endMap = _loadEndTimeMap();
+    document.getElementById('sessionEndTime').value = endMap[s._id] || '';
 
     const list = document.getElementById('instructorsList');
     list.innerHTML = '';
@@ -383,6 +414,18 @@ function addInstructorRow(memberId = '', roleSessionId = '') {
     list.appendChild(row);
 }
 
+// ─── EndTime local persistence (backend chưa có field endTime) ──
+const _END_KEY = 'clb_session_endtimes';
+function _loadEndTimeMap() {
+    try { return JSON.parse(localStorage.getItem(_END_KEY) || '{}'); } catch(e) { return {}; }
+}
+function _saveEndTime(sessionId, endTime) {
+    const map = _loadEndTimeMap();
+    if (endTime) map[sessionId] = endTime;
+    else delete map[sessionId];
+    try { localStorage.setItem(_END_KEY, JSON.stringify(map)); } catch(e) {}
+}
+
 async function saveSession() {
     const id   = document.getElementById('sessionId').value;
     const name = document.getElementById('sessionName').value.trim();
@@ -405,29 +448,39 @@ async function saveSession() {
         location:        document.getElementById('sessionLocation').value.trim(),
         maxParticipants: Number(document.getElementById('sessionMaxParticipants').value) || 50,
         sessionType:     document.querySelector('input[name="sessionType"]:checked')?.value || 'regular',
+        description:     document.getElementById('sessionDescription').value.trim(),
         instructors,
     };
-    const dateVal = document.getElementById('sessionDate').value;
-    if (dateVal) payload.sessionDate = new Date(dateVal).toISOString();
+
+    // Ghép ngày + giờ bắt đầu thành sessionDate
+    const dateOnly  = document.getElementById('sessionDateOnly').value;
+    const startTime = document.getElementById('sessionStartTime').value;
+    const endTime   = document.getElementById('sessionEndTime').value;
+    if (dateOnly) {
+        const combined = startTime ? `${dateOnly}T${startTime}` : `${dateOnly}T00:00`;
+        payload.sessionDate = new Date(combined).toISOString();
+    }
 
     showLoading();
     try {
         if (id) {
             const updated = await SessionAPI.update(id, payload);
-            // Backend có thể không lưu sessionType (chưa có trong model) → ép lại từ form
             updated.sessionType  = payload.sessionType;
+            updated.description  = payload.description;
             updated.instructors  = _mergeInstructorObjects(updated.instructors, instructors);
             const idx = _sessions.findIndex(s => s._id === id);
             if (idx !== -1) _sessions[idx] = updated;
             _saveTypeMap();
+            _saveEndTime(id, endTime);
             showToast('Cập nhật buổi sinh hoạt thành công!', 'success');
         } else {
             const created = await SessionAPI.create(payload);
-            // Backend có thể không lưu sessionType → ép lại từ form
             created.sessionType  = payload.sessionType;
+            created.description  = payload.description;
             created.instructors  = _mergeInstructorObjects(created.instructors, instructors);
             _sessions.unshift(created);
             _saveTypeMap();
+            _saveEndTime(created._id, endTime);
             showToast('Thêm buổi sinh hoạt thành công!', 'success');
         }
         closeModal('sessionModal');
@@ -458,7 +511,62 @@ function _mergeInstructorObjects(backendInstrs, formInstrs) {
     });
 }
 
-// ─── Delete ───────────────────────────────────────────────────
+// ─── Đăng ký tham gia ─────────────────────────────────────────
+async function toggleRegister(sessionId, btn) {
+    const user = getCurrentUser();
+    if (!user) { showToast('Vui lòng đăng nhập lại.', 'warning'); return; }
+
+    const alreadyReg = _isRegistered(sessionId);
+
+    if (alreadyReg) {
+        // Hủy đăng ký
+        _registerSet[sessionId] = false;
+        _saveRegisterSet();
+
+        // Xóa khỏi participateSet local
+        if (_participateSet[sessionId]) {
+            _participateSet[sessionId].delete(user.id);
+        }
+
+        // Nếu có record attendance thì xóa trên server
+        const existing = _attendanceMap[sessionId] || [];
+        const rec = existing.find(a => (a.memberId?._id || a.memberId) === user.id);
+        if (rec) {
+            try { await AttendanceAPI.delete(rec._id); } catch(e) {}
+            _attendanceMap[sessionId] = existing.filter(a => a._id !== rec._id);
+        }
+
+        btn.className = 'btn-register';
+        btn.textContent = '📝 Đăng ký';
+        showToast('Đã hủy đăng ký buổi sinh hoạt.', 'info');
+    } else {
+        // Đăng ký
+        _registerSet[sessionId] = true;
+        _saveRegisterSet();
+
+        // Thêm vào participateSet local ngay
+        if (!_participateSet[sessionId]) _participateSet[sessionId] = new Set();
+        _participateSet[sessionId].add(user.id);
+
+        // Tạo record attendance trên server (status mặc định Vắng — admin sẽ điểm danh sau)
+        try {
+            const existing = _attendanceMap[sessionId] || [];
+            const alreadyHas = existing.find(a => (a.memberId?._id || a.memberId) === user.id);
+            if (!alreadyHas) {
+                const rec = await AttendanceAPI.mark({ sessionId, memberId: user.id, status: 'Vắng', note: '' });
+                _attendanceMap[sessionId] = [...existing, rec];
+            }
+        } catch(e) {
+            // Không block UX nếu API lỗi — local state vẫn lưu
+        }
+
+        btn.className = 'btn-register registered';
+        btn.textContent = '✅ Đã đăng ký';
+        showToast('Đăng ký tham gia thành công! 🎉', 'success');
+    }
+}
+
+
 function openDeleteModal(id, name) {
     _deleteId = id;
     document.getElementById('deleteSessionName').textContent = name;
@@ -491,6 +599,14 @@ async function openDetailModal(sessionId) {
     if (!session) return;
 
     _currentSessionId = sessionId;
+    _attSearchKeyword = '';
+    _attSortAZ        = true;
+    _statusCache      = {};
+    // Reset UI controls
+    const attSearchInput = document.getElementById('attSearchInput');
+    if (attSearchInput) attSearchInput.value = '';
+    const btnSort = document.getElementById('btnAttSortAZ');
+    if (btnSort) btnSort.classList.add('active');
 
     const populatedInstrs = _populateInstructors(session.instructors);
     const instructorHtml  = populatedInstrs.map(i => {
@@ -507,15 +623,34 @@ async function openDetailModal(sessionId) {
         : `<span class="type-badge type-regular" style="font-size:.8rem;">📌 Sinh hoạt cố định</span>`;
 
     document.getElementById('detailModalTitle').textContent = session.sessionName;
+
+    // Lấy giờ kết thúc từ localStorage
+    const endMap  = _loadEndTimeMap();
+    const endTime = endMap[session._id] || '';
+    // Format ngày + giờ
+    const sessionD = session.sessionDate ? new Date(session.sessionDate) : null;
+    const pad = n => String(n).padStart(2,'0');
+    const dateStr   = sessionD ? `${pad(sessionD.getDate())}/${pad(sessionD.getMonth()+1)}/${sessionD.getFullYear()}` : '—';
+    const startStr  = sessionD ? `${pad(sessionD.getHours())}:${pad(sessionD.getMinutes())}` : '—';
+    const endStr    = endTime || '—';
+
     document.getElementById('sessionDetailInfo').innerHTML = `
         <div class="detail-info-grid">
             <div class="detail-info-item">
                 <span class="detail-info-label">📅 Ngày tổ chức</span>
-                <span class="detail-info-value">${formatDateTime(session.sessionDate)}</span>
+                <span class="detail-info-value">${dateStr}</span>
             </div>
             <div class="detail-info-item">
                 <span class="detail-info-label">📍 Địa điểm</span>
                 <span class="detail-info-value">${escapeHtml(session.location || '—')}</span>
+            </div>
+            <div class="detail-info-item">
+                <span class="detail-info-label">🕐 Giờ bắt đầu</span>
+                <span class="detail-info-value">${startStr}</span>
+            </div>
+            <div class="detail-info-item">
+                <span class="detail-info-label">🕔 Giờ kết thúc</span>
+                <span class="detail-info-value">${endStr}</span>
             </div>
             <div class="detail-info-item">
                 <span class="detail-info-label">👥 Số lượng tối đa</span>
@@ -529,6 +664,11 @@ async function openDetailModal(sessionId) {
                 <span class="detail-info-label">🎓 Người phụ trách</span>
                 <span class="detail-info-value">${instructorHtml || '—'}</span>
             </div>
+            ${session.description ? `
+            <div class="detail-info-item" style="grid-column: 1 / -1;">
+                <span class="detail-info-label">📝 Mô tả</span>
+                <span class="detail-info-value detail-description">${escapeHtml(session.description)}</span>
+            </div>` : ''}
         </div>
     `;
 
@@ -552,10 +692,18 @@ async function loadAttendance(sessionId) {
         (attendance || []).forEach(a => {
             const mid = a.memberId?._id || a.memberId;
             attByMember[mid] = a;
+            // Khởi tạo cache từ dữ liệu server
+            if (a.status) _statusCache[mid] = a.status;
         });
 
         if (!_participateSet[sessionId]) {
             _participateSet[sessionId] = new Set(Object.keys(attByMember));
+        }
+
+        // Nếu user hiện tại đã đăng ký, đảm bảo họ có trong participateSet
+        const user = getCurrentUser();
+        if (user && _isRegistered(sessionId)) {
+            _participateSet[sessionId].add(user.id);
         }
 
         renderAttendanceTable(attByMember);
@@ -580,11 +728,39 @@ function renderAttendanceTable(attByMember) {
         return;
     }
 
-    tbody.innerHTML = _members.map((m, idx) => {
+    // Trước khi render lại, lưu giá trị hiện tại của các select đang có trong DOM vào cache
+    document.querySelectorAll('.att-status').forEach(sel => {
+        _statusCache[sel.dataset.member] = sel.value;
+    });
+
+    // Lọc và sắp xếp danh sách thành viên
+    let displayMembers = [..._members];
+    if (_attSearchKeyword) {
+        const kw = _attSearchKeyword.toLowerCase();
+        displayMembers = displayMembers.filter(m =>
+            (m.fullName || '').toLowerCase().includes(kw) ||
+            (m.mssv || '').toLowerCase().includes(kw)
+        );
+    }
+    if (_attSortAZ) {
+        const getFirstName = name => {
+            if (!name) return '';
+            const parts = name.trim().split(/\s+/);
+            return parts[parts.length - 1]; // tên (phần cuối) trong tiếng Việt
+        };
+        displayMembers = [...displayMembers].sort((a, b) =>
+            getFirstName(a.fullName || a.mssv || '').localeCompare(
+                getFirstName(b.fullName || b.mssv || ''), 'vi'
+            )
+        );
+    }
+
+    tbody.innerHTML = displayMembers.map((m, idx) => {
         const mid      = m._id;
         const isJoined = pSet.has(mid);
         const rec      = attByMember[mid];
-        const status   = rec?.status || 'Vắng';
+        // Ưu tiên cache DOM (để không mất dữ liệu khi filter), sau đó mới dùng server data
+        const status   = _statusCache[mid] || rec?.status || 'Vắng';
         const note     = rec?.note   || '';
 
         const participateCell = admin
@@ -658,6 +834,8 @@ function onParticipateChange(checkbox) {
     const pSet = _participateSet[_currentSessionId] || new Set();
     checkbox.checked ? pSet.add(mid) : pSet.delete(mid);
     _participateSet[_currentSessionId] = pSet;
+    // Nếu bỏ tham gia, xóa khỏi cache
+    if (!checkbox.checked) delete _statusCache[mid];
 
     const attendance  = _attendanceMap[_currentSessionId] || [];
     const attByMember = {};
@@ -725,18 +903,17 @@ function _getStats() {
     const pSet = _participateSet[_currentSessionId] || new Set();
     let present = 0, absent = 0, excused = 0;
 
-    const selectMemberIds = new Set();
+    // Trước tiên sync cache từ DOM (các select đang hiển thị)
     document.querySelectorAll('.att-status').forEach(sel => {
-        if (!pSet.has(sel.dataset.member)) return;
-        selectMemberIds.add(sel.dataset.member);
-        if      (sel.value === 'Có mặt')  present++;
-        else if (sel.value === 'Có phép') excused++;
-        else                               absent++;
+        _statusCache[sel.dataset.member] = sel.value;
     });
 
-    // Người tham gia nhưng chưa có select = mặc định Vắng
+    // Đếm dựa trên toàn bộ pSet (không phụ thuộc filter DOM)
     pSet.forEach(mid => {
-        if (!selectMemberIds.has(mid)) absent++;
+        const status = _statusCache[mid] || 'Vắng';
+        if      (status === 'Có mặt')  present++;
+        else if (status === 'Có phép') excused++;
+        else                            absent++;
     });
 
     return { joined: pSet.size, present, absent, excused, total: _members.length };
@@ -856,10 +1033,25 @@ function buildDonut(present, absent, excused, joined) {
 
 // ─── Điểm danh helpers ────────────────────────────────────────
 function markAllPresent() {
+    // Bước 1: đánh dấu tất cả thành viên là tham gia
     const pSet = _participateSet[_currentSessionId] || new Set();
-    document.querySelectorAll('.att-status').forEach(sel => {
-        if (pSet.has(sel.dataset.member)) sel.value = 'Có mặt';
+    _members.forEach(m => pSet.add(m._id));
+    _participateSet[_currentSessionId] = pSet;
+
+    // Bước 2: re-render bảng để tạo các select .att-status
+    const attendance  = _attendanceMap[_currentSessionId] || [];
+    const attByMember = {};
+    attendance.forEach(a => {
+        const id = a.memberId?._id || a.memberId;
+        attByMember[id] = a;
     });
+    renderAttendanceTable(attByMember);
+
+    // Bước 3: set tất cả status = "Có mặt"
+    document.querySelectorAll('.att-status').forEach(sel => {
+        sel.value = 'Có mặt';
+    });
+
     updateAttendanceStats();
     renderAttendanceChart();
     showToast('Đã chọn "Có mặt" cho tất cả người tham gia. Nhớ nhấn Lưu!', 'info');
@@ -868,11 +1060,18 @@ function markAllPresent() {
 async function saveAllAttendance() {
     if (!_currentSessionId) return;
 
-    const pSet       = _participateSet[_currentSessionId] || new Set();
-    const selects    = document.querySelectorAll('.att-status');
-    const noteInputs = document.querySelectorAll('.att-note');
+    const pSet = _participateSet[_currentSessionId] || new Set();
 
     if (!_members.length) { showToast('Không có thành viên nào.', 'warning'); return; }
+
+    // Sync DOM → cache trước khi lưu
+    document.querySelectorAll('.att-status').forEach(sel => {
+        _statusCache[sel.dataset.member] = sel.value;
+    });
+    const noteMap = {};
+    document.querySelectorAll('.att-note').forEach(inp => {
+        noteMap[inp.dataset.member] = inp.value.trim();
+    });
 
     showLoading();
 
@@ -883,15 +1082,11 @@ async function saveAllAttendance() {
         existingMap[mid] = a;
     });
 
-    const noteMap = {};
-    noteInputs.forEach(inp => { noteMap[inp.dataset.member] = inp.value.trim(); });
-
     const promises = [];
 
-    selects.forEach(sel => {
-        const memberId = sel.dataset.member;
-        if (!pSet.has(memberId)) return;
-        const status = sel.value;
+    // Lưu tất cả người trong pSet, dù có đang hiển thị trên DOM hay không
+    pSet.forEach(memberId => {
+        const status = _statusCache[memberId] || 'Vắng';
         const note   = noteMap[memberId] || '';
         const rec    = existingMap[memberId];
 
@@ -932,4 +1127,43 @@ async function saveAllAttendance() {
     } finally {
         hideLoading();
     }
+}
+// ─── Attendance search & sort ─────────────────────────────────
+function onAttSearchInput(val) {
+    _attSearchKeyword = val.trim().toLowerCase();
+    _reRenderAttendance();
+}
+
+function toggleAttSortAZ() {
+    _attSortAZ = !_attSortAZ;
+    const btn = document.getElementById('btnAttSortAZ');
+    if (btn) btn.classList.toggle('active', _attSortAZ);
+    _reRenderAttendance();
+}
+
+function _reRenderAttendance() {
+    const attendance  = _attendanceMap[_currentSessionId] || [];
+    const attByMember = {};
+    attendance.forEach(a => {
+        const id = a.memberId?._id || a.memberId;
+        attByMember[id] = a;
+    });
+
+    // Preserve current DOM values before re-render
+    const statusMap = {};
+    const noteMap   = {};
+    document.querySelectorAll('.att-status').forEach(sel => { statusMap[sel.dataset.member] = sel.value; });
+    document.querySelectorAll('.att-note').forEach(inp   => { noteMap[inp.dataset.member]   = inp.value; });
+
+    // Merge DOM values into attByMember
+    Object.keys(statusMap).forEach(mid => {
+        if (attByMember[mid]) {
+            attByMember[mid].status = statusMap[mid];
+            attByMember[mid].note   = noteMap[mid] || attByMember[mid].note;
+        } else {
+            attByMember[mid] = { memberId: mid, status: statusMap[mid], note: noteMap[mid] || '' };
+        }
+    });
+
+    renderAttendanceTable(attByMember);
 }

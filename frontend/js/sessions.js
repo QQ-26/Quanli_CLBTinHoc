@@ -21,6 +21,8 @@ let _registerSet      = {};      // { sessionId: bool } — user hiện tại đ
 let _attSearchKeyword = '';      // tìm kiếm trong bảng điểm danh
 let _attSortAZ        = true;    // sắp xếp A-Z theo tên (mặc định bật)
 let _statusCache      = {};      // { memberId: status } — cache toàn bộ, không phụ thuộc filter DOM
+let _attCurrentPage   = 1;       // trang hiện tại của bảng điểm danh
+const ATT_PAGE_SIZE   = 10;      // số người mỗi trang điểm danh
 
 
 // ─── SessionType local persistence ───────────────────────────
@@ -602,6 +604,7 @@ async function openDetailModal(sessionId) {
     _attSearchKeyword = '';
     _attSortAZ        = true;
     _statusCache      = {};
+    _attCurrentPage   = 1;
     // Reset UI controls
     const attSearchInput = document.getElementById('attSearchInput');
     if (attSearchInput) attSearchInput.value = '';
@@ -755,7 +758,15 @@ function renderAttendanceTable(attByMember) {
         );
     }
 
-    tbody.innerHTML = displayMembers.map((m, idx) => {
+    // ── Phân trang bảng điểm danh ──
+    const attTotal = displayMembers.length;
+    const attTotalPages = Math.ceil(attTotal / ATT_PAGE_SIZE) || 1;
+    if (_attCurrentPage > attTotalPages) _attCurrentPage = attTotalPages;
+    if (_attCurrentPage < 1) _attCurrentPage = 1;
+    const attStart = (_attCurrentPage - 1) * ATT_PAGE_SIZE;
+    const pagedMembers = displayMembers.slice(attStart, attStart + ATT_PAGE_SIZE);
+
+    tbody.innerHTML = pagedMembers.map((m, idx) => {
         const mid      = m._id;
         const isJoined = pSet.has(mid);
         const rec      = attByMember[mid];
@@ -796,7 +807,7 @@ function renderAttendanceTable(attByMember) {
 
         return `
         <tr class="${!isJoined ? 'row-not-joined' : ''}">
-            <td>${idx + 1}</td>
+            <td>${attStart + idx + 1}</td>
             <td><code>${escapeHtml(m.mssv)}</code></td>
             <td>
                 <div class="member-cell">
@@ -812,6 +823,7 @@ function renderAttendanceTable(attByMember) {
 
     updateAttendanceStats();
     renderAttendanceChart();
+    renderAttendancePagination(attTotal, attTotalPages);
 
     const checkAll = document.getElementById('checkAllParticipate');
     if (checkAll) {
@@ -1128,14 +1140,62 @@ async function saveAllAttendance() {
         hideLoading();
     }
 }
+// ─── Attendance pagination ─────────────────────────────────────
+function renderAttendancePagination(total, totalPages) {
+    const container = document.getElementById('attendancePagination');
+    if (!container) return;
+
+    if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+    const start = (_attCurrentPage - 1) * ATT_PAGE_SIZE + 1;
+    const end   = Math.min(_attCurrentPage * ATT_PAGE_SIZE, total);
+
+    let btns = '';
+    btns += `<button class="att-pg-btn" ${_attCurrentPage === 1 ? 'disabled' : ''}
+        onclick="gotoAttPage(${_attCurrentPage - 1})">‹</button>`;
+
+    for (let p = 1; p <= totalPages; p++) {
+        if (p === 1 || p === totalPages || Math.abs(p - _attCurrentPage) <= 1) {
+            btns += `<button class="att-pg-btn ${p === _attCurrentPage ? 'active' : ''}"
+                onclick="gotoAttPage(${p})">${p}</button>`;
+        } else if (Math.abs(p - _attCurrentPage) === 2) {
+            btns += `<span class="att-pg-ellipsis">…</span>`;
+        }
+    }
+
+    btns += `<button class="att-pg-btn" ${_attCurrentPage === totalPages ? 'disabled' : ''}
+        onclick="gotoAttPage(${_attCurrentPage + 1})">›</button>`;
+
+    container.innerHTML = `
+        <span class="att-pg-info">Hiển thị ${start}–${end} / ${total} người</span>
+        <div class="att-pg-btns">${btns}</div>`;
+}
+
+function gotoAttPage(p) {
+    // Sync DOM status/note trước khi chuyển trang để không mất dữ liệu
+    document.querySelectorAll('.att-status').forEach(sel => {
+        _statusCache[sel.dataset.member] = sel.value;
+    });
+    document.querySelectorAll('.att-note').forEach(inp => {
+        if (!inp.dataset.member) return;
+        const att = (_attendanceMap[_currentSessionId] || []).find(a =>
+            (a.memberId?._id || a.memberId) === inp.dataset.member);
+        if (att) att.note = inp.value;
+    });
+    _attCurrentPage = p;
+    _reRenderAttendance();
+}
+
 // ─── Attendance search & sort ─────────────────────────────────
 function onAttSearchInput(val) {
     _attSearchKeyword = val.trim().toLowerCase();
+    _attCurrentPage   = 1;
     _reRenderAttendance();
 }
 
 function toggleAttSortAZ() {
-    _attSortAZ = !_attSortAZ;
+    _attSortAZ      = !_attSortAZ;
+    _attCurrentPage = 1;
     const btn = document.getElementById('btnAttSortAZ');
     if (btn) btn.classList.toggle('active', _attSortAZ);
     _reRenderAttendance();

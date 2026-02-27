@@ -1048,3 +1048,57 @@
     border-left: 3px solid #cbd5e0;
     font-size: .875rem;
 }
+/* ── Attendance table pagination ── */
+.att-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .6rem .25rem .4rem;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+.att-pg-info {
+    font-size: .8rem;
+    color: #718096;
+}
+.att-pg-btns {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+}
+.att-pg-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 .4rem;
+    border-radius: 6px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    color: #4a5568;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.att-pg-btn:hover:not(:disabled) {
+    background: #ebf4ff;
+    border-color: #4299e8;
+    color: #4299e8;
+}
+.att-pg-btn.active {
+    background: #4299e8;
+    border-color: #4299e8;
+    color: #fff;
+}
+.att-pg-btn:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+.att-pg-ellipsis {
+    color: #a0aec0;
+    font-size: .85rem;
+    padding: 0 .15rem;
+    user-select: none;
+}

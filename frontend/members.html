@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thành viên — CLB Tin Học</title>
+
+  <link rel="stylesheet" href="css/common.css" />
+  <link rel="stylesheet" href="css/sidebar.css" />
+
+  <style>
+    /* ══════════════════════════════════════════
+       MEMBERS PAGE STYLES
+       ══════════════════════════════════════════ */
+
+    /* ── Toolbar ── */
+    .mem-toolbar {
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .mem-toolbar .form-control {
+      flex: 1;
+      max-width: 480px;
+      height: 40px;
+      padding: 0 1rem;
+      border: 1.5px solid #d1d5e8;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: #3a3b45;
+      background: #f8f9fc;
+      font-family: inherit;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .mem-toolbar .form-control:focus {
+      outline: none;
+      border-color: #4e73df;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(78,115,223,.12);
+    }
+
+    /* ── Table card ── */
+    .mem-table-card {
+      margin-top: 1.25rem;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(58,59,69,.1);
+      border: 1px solid #e3e6f0;
+      overflow: hidden;
+    }
+
+    /* ── Table ── */
+    .mem-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      table-layout: fixed;
+    }
+    /* Column widths */
+    .mem-table col.c-stt    { width: 60px; }
+    .mem-table col.c-name   { width: 220px; }
+    .mem-table col.c-mssv   { width: 130px; }
+    .mem-table col.c-class  { width: 120px; }
+    .mem-table col.c-email  { width: auto; }
+    .mem-table col.c-role   { width: 120px; }
+    .mem-table col.c-status { width: 130px; }
+    .mem-table col.c-action { width: 155px; }
+
+    .mem-table thead tr {
+      background: #f0f3ff;
+      border-bottom: 2px solid #d1d5e8;
+    }
+    .mem-table th {
+      padding: 13px 16px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #3a3b45;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      white-space: nowrap;
+      text-align: left;
+    }
+    .mem-table th.col-center { text-align: center; }
+
+    .mem-table td {
+      padding: 11px 16px;
+      border-bottom: 1px solid #eaedf5;
+      color: #3a3b45;
+      font-size: 0.875rem;
+      vertical-align: middle;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .mem-table td.td-action {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: unset;
+    }
+    .mem-table tbody tr:last-child td { border-bottom: none; }
+    .mem-table tbody tr:hover { background: #f5f7ff; transition: background .12s; }
+
+    /* STT */
+    .td-stt {
+      text-align: center;
+      font-weight: 700;
+      color: #6c6f80;
+      font-size: 0.82rem;
+    }
+
+    /* Họ tên cell */
+    .mem-name-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .mem-avatar-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      overflow: hidden;
+      border: 2px solid #e3e6f0;
+      background: #4e73df;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mem-avatar-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+    .mem-avatar-initials {
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 1;
+    }
+    .mem-fullname {
+      font-weight: 600;
+      color: #2e2f3a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Actions col */
+    .td-action { text-align: center; }
+    .mem-actions {
+      display: inline-flex;
+      gap: 6px;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: unset;
+    }
+
+    /* Empty / loading */
+    .mem-empty, .mem-loading {
+      text-align: center;
+      color: #aaa;
+      padding: 3rem 1rem !important;
+      font-size: 0.9rem;
+      font-style: italic;
+    }
+
+    /* ── Pagination ── */
+    .mem-pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #eaedf5;
+    }
+    .page-btn {
+      min-width: 36px; height: 36px; padding: 0 8px;
+      border: 1.5px solid #d1d5e8; background: #fff;
+      border-radius: 7px; font-size: 0.85rem;
+      font-family: inherit; color: #3a3b45;
+      cursor: pointer; font-weight: 600; transition: all .15s;
+    }
+    .page-btn:hover:not(:disabled) { background: #4e73df; border-color: #4e73df; color: #fff; }
+    .page-btn.active { background: #4e73df; border-color: #4e73df; color: #fff; }
+    .page-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block; padding: 3px 10px;
+      border-radius: 999px; font-size: 0.75rem;
+      font-weight: 700; letter-spacing: .02em;
+    }
+    .badge-success   { background: #d1f5e5; color: #0a6640; }
+    .badge-secondary { background: #e2e3e8; color: #55576a; }
+    .badge-info      { background: #dbeeff; color: #1a5fa8; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 7px 14px; border: none; border-radius: 7px;
+      font-size: 0.85rem; font-family: inherit; font-weight: 600;
+      cursor: pointer; transition: all .15s; text-decoration: none;
+    }
+    .btn-primary  { background: #4e73df; color: #fff; }
+    .btn-primary:hover  { background: #2e59d9; }
+    .btn-secondary { background: #858796; color: #fff; }
+    .btn-secondary:hover { background: #6e7082; }
+    .btn-warning  { background: #f6a623; color: #fff; }
+    .btn-warning:hover  { background: #d48a0a; }
+    .btn-danger   { background: #e74a3b; color: #fff; }
+    .btn-danger:hover   { background: #be2617; }
+    .btn-sm { padding: 5px 10px; font-size: 0.78rem; border-radius: 6px; }
+
+    /* ── Modal overlay ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(20,22,40,.6);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: all; }
+
+    .modal-box {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 10px 50px rgba(0,0,0,.25);
+      width: 100%; max-width: 590px;
+      max-height: 92vh; overflow-y: auto;
+      animation: slideUp .22s ease;
+    }
+    .modal-box--sm { max-width: 420px; }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.1rem 1.4rem;
+      background: #f8f9fc;
+      border-bottom: 1.5px solid #e3e6f0;
+      border-radius: 12px 12px 0 0;
+    }
+    .modal-title { font-size: 1rem; font-weight: 700; color: #2e2f3a; }
+    .modal-close {
+      background: none; border: none; font-size: 1.5rem;
+      cursor: pointer; color: #aaa; line-height: 1; padding: 0 4px;
+    }
+    .modal-close:hover { color: #e74a3b; }
+
+    .modal-body { padding: 1.4rem; background: #fff; }
+    .modal-footer {
+      padding: 1rem 1.4rem;
+      background: #f8f9fc;
+      border-top: 1.5px solid #e3e6f0;
+      display: flex; justify-content: flex-end; gap: 8px;
+      border-radius: 0 0 12px 12px;
+    }
+
+    /* ── Form ── */
+    .form-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0; }
+    .form-row .form-group { flex: 1; min-width: 180px; }
+    .form-group { margin-bottom: 1rem; }
+    .form-label {
+      display: block; font-size: 0.82rem; font-weight: 700;
+      color: #3a3b45; margin-bottom: 5px;
+    }
+    .form-control {
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid #d1d5e8; border-radius: 7px;
+      font-size: 0.875rem; font-family: inherit; color: #2e2f3a;
+      background: #fff; transition: border-color .15s, box-shadow .15s;
+    }
+    .form-control:focus {
+      outline: none; border-color: #4e73df;
+      box-shadow: 0 0 0 3px rgba(78,115,223,.12);
+    }
+    .form-hint { font-size: 0.78rem; color: #999; margin-top: 4px; display: block; }
+    .required { color: #e74a3b; }
+
+    /* ── Avatar upload trong modal ── */
+    .avatar-upload-section {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 14px; margin-bottom: 1rem;
+      background: #f8f9fc;
+      border: 1.5px dashed #c5cadd;
+      border-radius: 9px;
+    }
+    .modal-avatar-preview {
+      width: 88px; height: 88px; border-radius: 50%;
+      border: 3px solid #4e73df;
+      background: #4e73df;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; flex-shrink: 0;
+      color: #fff; font-size: 1.6rem; font-weight: 700;
+    }
+    .modal-avatar-preview img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+
+    /* ── Password toggle ── */
+    .password-field-wrap {
+      position: relative;
+    }
+    .password-field-wrap .form-control {
+      padding-right: 44px;
+    }
+    .btn-toggle-pw {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      font-size: 1rem; color: #888; padding: 4px; line-height: 1;
+    }
+    .btn-toggle-pw:hover { color: #4e73df; }
+    .avatar-upload-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px;
+      border: 1.5px solid #4e73df; border-radius: 7px;
+      color: #4e73df; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; background: #fff; transition: all .15s;
+      font-family: inherit;
+    }
+    .avatar-upload-btn:hover { background: #4e73df; color: #fff; }
+    #field-avatar { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="layout-wrapper">
+  <main class="main-content">
+    <div class="page-container">
+
+      <!-- ── Page header ── -->
+      <div class="page-header">
+        <div>
+          <div class="page-title">👥 Danh sách thành viên</div>
+          <div class="page-subtitle">Quản lý thành viên CLB Tin Học</div>
+        </div>
+        <button class="btn btn-primary admin-only" id="btn-add-member">
+          ➕ Thêm thành viên
+        </button>
+      </div>
+
+      <!-- ── Search bar ── -->
+      <div class="card mem-toolbar">
+        <input type="text" id="mem-search" class="form-control"
+          placeholder="🔍 Tìm kiếm theo họ tên hoặc MSSV..." />
+      </div>
+
+      <!-- ── Table ── -->
+      <div class="mem-table-card">
+        <div style="overflow-x: auto;">
+          <table class="mem-table" id="mem-table">
+            <colgroup>
+              <col class="c-stt" />
+              <col class="c-name" />
+              <col class="c-mssv" />
+              <col class="c-class" />
+              <col class="c-email" />
+              <col class="c-role" />
+              <col class="c-status" />
+              <col class="c-action" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="col-center">STT</th>
+                <th>Họ và tên</th>
+                <th>MSSV</th>
+                <th>Lớp</th>
+                <th>Email</th>
+                <th>Vai trò</th>
+                <th>Trạng thái</th>
+                <th class="admin-only col-center">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="mem-tbody">
+              <tr><td colspan="8" class="mem-loading">Đang tải dữ liệu...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mem-pagination" id="mem-pagination"></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL: Thêm / Sửa thành viên
+     ══════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-member">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-member-title">Thêm thành viên</h3>
+      <button class="modal-close" onclick="closeModal('modal-member')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-member" autocomplete="off">
+        <input type="hidden" id="field-id" />
+
+        <!-- Ảnh đại diện -->
+        <div class="avatar-upload-section">
+          <div class="modal-avatar-preview" id="avatar-preview-box">?</div>
+          <div>
+            <label class="avatar-upload-btn" for="field-avatar">
+              📷 Chọn ảnh đại diện
+            </label>
+            <input type="file" id="field-avatar" accept="image/*" />
+            <div style="font-size:.75rem; color:#999; margin-top:5px;">
+              JPG, PNG, WEBP — tối đa 2MB
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Họ và tên <span class="required">*</span></label>
+            <input type="text" id="field-fullName" class="form-control" placeholder="Nguyễn Văn A" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">MSSV <span class="required">*</span></label>
+            <input type="text" id="field-mssv" class="form-control" placeholder="2251234567" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Lớp <span class="required" id="className-required">*</span></label>
+            <input type="text" id="field-className" class="form-control" placeholder="22TCLC_DT5" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="field-email" class="form-control" placeholder="example@ou.edu.vn" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Vai trò</label>
+            <select id="field-roleId" class="form-control">
+              <option value="">-- Chọn vai trò --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Trạng thái</label>
+            <select id="field-status" class="form-control">
+              <option value="Hoạt động">Hoạt động</option>
+              <option value="Không hoạt động">Không hoạt động</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Mật khẩu <span class="required" id="password-required">*</span></label>
+          <div class="password-field-wrap">
+            <input type="password" id="field-password" class="form-control" placeholder="Để trống nếu không đổi (khi sửa)" />
+            <button type="button" class="btn-toggle-pw" onclick="_togglePassword('field-password', this)" title="Hiện/Ẩn mật khẩu">👁</button>
+          </div>
+          <small class="form-hint" id="hint-password">Bắt buộc khi tạo mới.</small>
+        </div>
+        <div class="form-group" id="confirm-password-group">
+          <label class="form-label">Xác nhận mật khẩu <span class="required" id="confirm-required">*</span></label>
+          <div class="password-field-wrap">
+            <input type="password" id="field-password-confirm" class="form-control" placeholder="Nhập lại mật khẩu" />
+            <button type="button" class="btn-toggle-pw" onclick="_togglePassword('field-password-confirm', this)" title="Hiện/Ẩn mật khẩu">👁</button>
+          </div>
+          <small class="form-hint" id="hint-password-confirm" style="color:#e74a3b;display:none;">Mật khẩu không khớp!</small>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-member')">Hủy</button>
+      <button class="btn btn-primary" id="btn-save-member">💾 Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL: Xác nhận xóa
+     ══════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-delete">
+  <div class="modal-box modal-box--sm">
+    <div class="modal-header">
+      <h3 class="modal-title">⚠️ Xác nhận xóa</h3>
+      <button class="modal-close" onclick="closeModal('modal-delete')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:#3a3b45; font-size:.9rem; line-height:1.7;">
+        Bạn có chắc muốn xóa thành viên<br/>
+        <strong id="delete-member-name" style="color:#2e2f3a;"></strong>?<br/>
+        Hành động này <strong style="color:#e74a3b;">không thể hoàn tác</strong>.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-delete')">Hủy</button>
+      <button class="btn btn-danger" id="btn-confirm-delete">🗑️ Xóa</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/members.js"></script>
+</body>
+</html>

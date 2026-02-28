@@ -40,15 +40,33 @@ function _buildAvatarHtml(avatarUrl, initials, size = 'sm') {
         ${initials}
       </span>`;
   }
-  return initials;
+  // Luôn trả về avatar chữ cái đầu nếu không có avatarUrl
+  return `<span style="width:${dim};height:${dim};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${fs};font-weight:800;color:#fff;background:linear-gradient(135deg,var(--primary),#6c8fef);">${initials}</span>`;
 }
 
 function buildSidebar(activePage) {
   const user      = getCurrentUser();
   const adminFlag = isAdmin();
 
-  const initials = user ? getInitials(user.fullName || user.mssv || 'U') : '?';
-  const userName = user ? escapeHtml(user.fullName || user.mssv || 'Người dùng') : 'Người dùng';
+  let initials = 'U';
+  let userName = 'User';
+  if (user) {
+    if (user.fullName && user.fullName.trim()) {
+      initials = getInitials(user.fullName);
+      userName = escapeHtml(user.fullName);
+    } else if (user.mssv && user.mssv.trim()) {
+      initials = getInitials(user.mssv);
+      userName = escapeHtml(user.mssv);
+    } else if (user.username && user.username.trim()) {
+      initials = getInitials(user.username);
+      userName = escapeHtml(user.username);
+    }
+    // Đảm bảo initials không rỗng
+    if (!initials || initials === '?') initials = 'U';
+  } else {
+    // Nếu không có user, ép đăng xuất
+    if (typeof logout === 'function') logout();
+  }
   const userMssv = user ? escapeHtml(user.mssv  || '—') : '—';
   const userEmail= user ? escapeHtml(user.email || '—') : '—';
   let roleLabel  = 'Thành viên';
@@ -200,30 +218,55 @@ function buildSidebar(activePage) {
 function _fetchAndUpdateAvatar(user) {
   if (!user) return;
   const uid = user.id || user._id;
-  if (!uid || typeof MemberAPI === 'undefined') return;
+  if (!uid) return;
 
-  MemberAPI.getById(uid).then(detail => {
+  // Tính initials trước để dùng trong cả success và catch
+  let initials = 'U';
+  if (user.fullName || user.mssv) {
+    initials = getInitials(user.fullName || user.mssv || 'U');
+  }
+  if (!initials || initials === '?') initials = 'U';
+  initials = escapeHtml(initials);
+
+  const token = localStorage.getItem('accessToken');
+  if (!token) return;
+
+  // Dùng fetch trực tiếp (KHÔNG qua MemberAPI) để tránh _forceLogout khi token hết hạn
+  fetch(`https://website-qlclb.onrender.com/api/members/${uid}`, {
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+  }).then(res => {
+    if (!res.ok) throw new Error('fetch avatar failed: ' + res.status);
+    return res.json();
+  }).then(detail => {
     if (!detail) return;
     const newPath = detail.avatarPath || null;
 
-    // Chỉ cập nhật nếu path thay đổi
-    if (newPath === user.avatarPath && user.avatarPath) return;
-
+    // Cập nhật user trong localStorage với thông tin mới nhất
     user.avatarPath = newPath;
+    if (detail.fullName) user.fullName = detail.fullName;
+    if (detail.mssv)     user.mssv     = detail.mssv;
+    if (detail.email)    user.email    = detail.email;
     localStorage.setItem('currentUser', JSON.stringify(user));
 
     const avatarUrl = _resolveAvatarUrl(newPath);
-    const initials  = escapeHtml(getInitials(user.fullName || user.mssv || 'U'));
+    let updatedInitials = initials;
+    if (detail.fullName || detail.mssv) {
+      const raw = getInitials(detail.fullName || detail.mssv || 'U');
+      updatedInitials = escapeHtml(raw && raw !== '?' ? raw : 'U');
+    }
 
-    // Cập nhật sidebar avatar
     const sidebarAv = document.getElementById('sidebarAvatar');
-    if (sidebarAv) sidebarAv.innerHTML = _buildAvatarHtml(avatarUrl, initials, 'sm');
+    if (sidebarAv) sidebarAv.innerHTML = _buildAvatarHtml(avatarUrl, updatedInitials, 'sm');
 
-    // Cập nhật popup avatar
     const popupAv = document.getElementById('popupAvatar');
-    if (popupAv) popupAv.innerHTML = _buildAvatarHtml(avatarUrl, initials, 'lg');
-
-  }).catch(() => {});
+    if (popupAv) popupAv.innerHTML = _buildAvatarHtml(avatarUrl, updatedInitials, 'lg');
+  }).catch(() => {
+    // Silent fail — chỉ cập nhật chữ cái đầu, không redirect
+    const sidebarAv = document.getElementById('sidebarAvatar');
+    if (sidebarAv) sidebarAv.innerHTML = _buildAvatarHtml(null, initials, 'sm');
+    const popupAv = document.getElementById('popupAvatar');
+    if (popupAv) popupAv.innerHTML = _buildAvatarHtml(null, initials, 'lg');
+  });
 }
 
 function _initSidebarLogic() {

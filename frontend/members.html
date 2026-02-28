@@ -71,6 +71,9 @@
       background: #f0f3ff;
       border-bottom: 2px solid #d1d5e8;
     }
+    .mem-table thead {
+      background: #f0f3ff;
+    }
     .mem-table th {
       padding: 13px 16px;
       font-size: 0.75rem;
@@ -80,6 +83,7 @@
       letter-spacing: .05em;
       white-space: nowrap;
       text-align: left;
+      background: #f0f3ff;
     }
     .mem-table th.col-center { text-align: center; }
 
@@ -166,6 +170,42 @@
       font-size: 0.9rem;
       font-style: italic;
     }
+
+    /* Row clickable */
+    .mem-table tbody tr.row-clickable {
+      cursor: pointer;
+    }
+    .mem-table tbody tr.row-clickable:hover {
+      background: #eef1ff;
+    }
+
+    /* ── Modal xem thông tin thành viên ── */
+    .view-modal-avatar {
+      width: 80px; height: 80px; border-radius: 50%;
+      border: 3px solid #4e73df;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; flex-shrink: 0;
+      font-size: 1.6rem; font-weight: 700; color: #fff;
+      margin: 0 auto 1rem;
+    }
+    .view-modal-avatar img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .view-info-table {
+      width: 100%; border-collapse: collapse; font-size: 0.88rem;
+    }
+    .view-info-table tr {
+      border-bottom: 1px solid #f0f2f8;
+    }
+    .view-info-table tr:last-child { border-bottom: none; }
+    .view-info-table td {
+      padding: 9px 8px; vertical-align: middle;
+    }
+    .view-info-table td:first-child {
+      width: 130px; font-weight: 700; color: #6c7080;
+      font-size: 0.78rem; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .view-info-table td:last-child { color: #2e2f3a; font-weight: 500; }
 
     /* ── Pagination ── */
     .mem-pagination {
@@ -498,6 +538,33 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-delete')">Hủy</button>
       <button class="btn btn-danger" id="btn-confirm-delete">🗑️ Xóa</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL: Xem thông tin thành viên
+     ══════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-view">
+  <div class="modal-box modal-box--sm">
+    <div class="modal-header">
+      <h3 class="modal-title">👤 Thông tin thành viên</h3>
+      <button class="modal-close" onclick="closeModal('modal-view')">&times;</button>
+    </div>
+    <div class="modal-body" style="text-align:center; padding-top:1.6rem;">
+      <div class="view-modal-avatar" id="view-avatar"></div>
+      <div style="font-size:1.1rem;font-weight:700;color:#2e2f3a;margin-bottom:.2rem;" id="view-fullname"></div>
+      <div style="font-size:.82rem;color:#888;margin-bottom:1.2rem;" id="view-role-badge"></div>
+      <table class="view-info-table" style="text-align:left; margin-top:.5rem;">
+        <tr><td>MSSV</td><td id="view-mssv">—</td></tr>
+        <tr><td>Lớp</td><td id="view-class">—</td></tr>
+        <tr><td>Email</td><td id="view-email">—</td></tr>
+        <tr><td>Trạng thái</td><td id="view-status">—</td></tr>
+      </table>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-view')">Đóng</button>
+      <button class="btn btn-warning admin-only" id="btn-view-edit">✏️ Sửa</button>
     </div>
   </div>
 </div>

@@ -34,28 +34,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function _loadMembers(page = 1) {
   showLoading();
   try {
-    const res = await MemberAPI.getAll(page, _memState.LIMIT, _memState.keyword);
+    // Fetch tất cả để sort toàn bộ rồi mới phân trang — tránh sort từng trang riêng lẻ
+    const res = await MemberAPI.getAll(1, 9999, _memState.keyword);
 
-    // Sắp xếp theo tên (từ cuối cùng trong fullName), chuẩn tiếng Việt
     const getSortName = m => {
       if (!m.fullName) return (m.mssv || '').toLowerCase();
       const parts = m.fullName.trim().split(/\s+/);
       return (parts[parts.length - 1] || '').toLowerCase();
     };
-    const sorted = (res.members || []).slice().sort((a, b) => {
+    const allSorted = (res.members || []).slice().sort((a, b) => {
       const na = getSortName(a);
       const nb = getSortName(b);
       return na.localeCompare(nb, 'vi');
     });
 
-    _memState.members     = sorted;
-    _memState.totalPages  = parseInt(res.totalPages)  || 1;
-    _memState.currentPage = parseInt(res.currentPage) || page;
+    // Phân trang thủ công ở frontend
+    const total      = allSorted.length;
+    const totalPages = Math.ceil(total / _memState.LIMIT) || 1;
+    const curPage    = Math.min(page, totalPages);
+    const start      = (curPage - 1) * _memState.LIMIT;
+    const end        = start + _memState.LIMIT;
+
+    _memState.allMembers  = allSorted;          // lưu toàn bộ để dùng khi chuyển trang
+    _memState.members     = allSorted.slice(start, end);
+    _memState.totalPages  = totalPages;
+    _memState.currentPage = curPage;
 
     _renderTable();
     _renderPagination();
   } catch (err) {
-    // Hiện thông báo lỗi trong bảng thay vì kẹt "Đang tải"
     const tbody = document.getElementById('mem-tbody');
     if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="mem-empty">⚠️ ${escapeHtml(err.message || 'Lỗi tải danh sách thành viên.')}</td></tr>`;
     showToast(err.message || 'Lỗi tải danh sách thành viên.', 'danger');
@@ -97,15 +104,15 @@ function _renderTable() {
       <div class="mem-actions">
         <button class="btn btn-sm btn-warning"
           data-id="${m._id}"
-          onclick="_openEditModal(this.dataset.id)">✏️ Sửa</button>
+          onclick="event.stopPropagation();_openEditModal(this.dataset.id)">✏️ Sửa</button>
         <button class="btn btn-sm btn-danger"
           data-id="${m._id}"
           data-name="${escapeHtml(m.fullName || m.mssv)}"
-          onclick="_openDeleteModal(this.dataset.id, this.dataset.name)">🗑️ Xóa</button>
+          onclick="event.stopPropagation();_openDeleteModal(this.dataset.id, this.dataset.name)">🗑️ Xóa</button>
       </div>` : '';
 
     return `
-      <tr>
+      <tr class="row-clickable" data-id="${m._id}" onclick="_openViewModal('${m._id}')">
         <td class="td-stt">${offset + i + 1}</td>
         <td>
           <div class="mem-name-cell">
@@ -186,7 +193,13 @@ function _renderPagination() {
 
 function _goToPage(page) {
   if (page < 1 || page > _memState.totalPages) return;
-  _loadMembers(page);
+  const start = (page - 1) * _memState.LIMIT;
+  const end   = start + _memState.LIMIT;
+  _memState.members     = (_memState.allMembers || []).slice(start, end);
+  _memState.currentPage = page;
+  _renderTable();
+  _renderPagination();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /* ════════════════════════════════════════
@@ -219,6 +232,12 @@ function _bindEvents() {
   const avatarInput = document.getElementById('field-avatar');
   if (avatarInput) avatarInput.addEventListener('change', _handleAvatarChange);
 
+  // Nút Sửa trong modal xem thông tin
+  const btnViewEdit = document.getElementById('btn-view-edit');
+  if (btnViewEdit) btnViewEdit.addEventListener('click', () => {
+    const id = btnViewEdit.dataset.memberId;
+    if (id) { closeModal('modal-view'); _openEditModal(id); }
+  });
   // Avatar preview cập nhật khi gõ tên (chế độ thêm mới, chưa chọn ảnh)
   const nameInput = document.getElementById('field-fullName');
   if (nameInput) nameInput.addEventListener('input', () => {
@@ -338,6 +357,46 @@ function _openEditModal(id) {
   _resetAvatarPreview(member);
   _populateRoleDropdown(member.roleId?._id || member.roleId || null);
   openModal('modal-member');
+}
+
+/* ════════════════════════════════════════
+   MODAL: XEM THÔNG TIN
+   ════════════════════════════════════════ */
+function _openViewModal(id) {
+  const m = _memState.members.find(x => x._id === id);
+  if (!m) return;
+
+  // Avatar
+  const avatarBox = document.getElementById('view-avatar');
+  const src = m.avatarPath || m.avatar || null;
+  if (src) {
+    avatarBox.style.background = 'transparent';
+    avatarBox.innerHTML = `<img src="${escapeHtml(src)}" alt="" onerror="this.parentElement.style.background='${_nameToColor(m.fullName||m.mssv)}';this.remove();" />`;
+  } else {
+    avatarBox.style.background = _nameToColor(m.fullName || m.mssv || '');
+    avatarBox.innerHTML = `<span>${escapeHtml(_getColorInitials(m.fullName || m.mssv || '?'))}</span>`;
+  }
+
+  // Tên + vai trò
+  document.getElementById('view-fullname').textContent = m.fullName || m.mssv || '—';
+  const roleName = m.roleId?.roleName || '—';
+  document.getElementById('view-role-badge').innerHTML =
+    `<span class="badge badge-info" style="font-size:.8rem;">${escapeHtml(roleName)}</span>`;
+
+  // Thông tin chi tiết
+  document.getElementById('view-mssv').textContent    = m.mssv      || '—';
+  document.getElementById('view-class').textContent   = m.className || '—';
+  document.getElementById('view-email').textContent   = m.email     || '—';
+
+  const isActive = m.status === 'Hoạt động';
+  document.getElementById('view-status').innerHTML =
+    `<span class="badge ${isActive ? 'badge-success' : 'badge-secondary'}">${escapeHtml(m.status || '—')}</span>`;
+
+  // Gán id cho nút Sửa
+  const btnViewEdit = document.getElementById('btn-view-edit');
+  if (btnViewEdit) btnViewEdit.dataset.memberId = m._id;
+
+  openModal('modal-view');
 }
 
 /* ════════════════════════════════════════

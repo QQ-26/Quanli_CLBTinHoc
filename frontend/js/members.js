@@ -60,6 +60,10 @@ async function _loadMembers(page = 1) {
     _memState.totalPages  = totalPages;
     _memState.currentPage = curPage;
 
+    // Cập nhật tổng số thành viên
+    const totalCountEl = document.getElementById('mem-total-count');
+    if (totalCountEl) totalCountEl.textContent = total;
+
     _renderTable();
     _renderPagination();
   } catch (err) {
@@ -98,7 +102,7 @@ function _renderTable() {
     const statusBadge = `<span class="badge ${isActive ? 'badge-success' : 'badge-secondary'}">${escapeHtml(m.status || '—')}</span>`;
 
     // Avatar: dùng ảnh thật nếu có, ngược lại dùng màu nền dựa vào tên
-    const avatarHtml = _buildAvatarHtml(m, 36);
+    const avatarHtml = _buildMemberAvatarHtml(m, 36);
 
     const adminActions = isAdmin() ? `
       <div class="mem-actions">
@@ -134,7 +138,7 @@ function _renderTable() {
  * Tạo HTML avatar cho bảng
  * Ưu tiên: avatarPath từ server → avatarDataUrl local → màu + chữ đầu tên
  */
-function _buildAvatarHtml(member, size = 36) {
+function _buildMemberAvatarHtml(member, size = 36) {
   const src = member.avatarPath || member.avatar || null;
   if (src) {
     return `<div class="mem-avatar-wrap" style="width:${size}px;height:${size}px;">
@@ -258,35 +262,83 @@ function _handleAvatarChange(e) {
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    _memState.avatarDataUrl = ev.target.result;
-    _setModalAvatarImage(ev.target.result);
-  };
-  reader.readAsDataURL(file);
+  // Nén & resize ảnh trước khi encode base64 để tránh lỗi 413
+  _compressImage(file, 400, 400, 0.75).then(dataUrl => {
+    _memState.avatarDataUrl = dataUrl;
+    _setModalAvatarImage(dataUrl);
+  }).catch(() => {
+    // Fallback: đọc ảnh gốc nếu compress thất bại
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      _memState.avatarDataUrl = ev.target.result;
+      _setModalAvatarImage(ev.target.result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Nén và resize ảnh bằng Canvas trước khi gửi lên server.
+ * Giới hạn kích thước tối đa và chất lượng JPEG để tránh lỗi 413.
+ * @param {File} file - File ảnh gốc
+ * @param {number} maxW - Chiều rộng tối đa (px)
+ * @param {number} maxH - Chiều cao tối đa (px)
+ * @param {number} quality - Chất lượng JPEG (0-1)
+ * @returns {Promise<string>} - Data URL đã nén
+ */
+function _compressImage(file, maxW, maxH, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+      // Scale xuống nếu vượt kích thước tối đa
+      if (width > maxW || height > maxH) {
+        const ratio = Math.min(maxW / width, maxH / height);
+        width  = Math.round(width  * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width  = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject;
+    img.src = objectUrl;
+  });
 }
 
 function _setModalAvatarImage(src) {
-  const box = document.getElementById('avatar-preview-box');
-  if (!box) return;
-  box.innerHTML = `<img src="${src}" alt="avatar" style="width:62px;height:62px;border-radius:50%;object-fit:cover;" />`;
+  const img      = document.getElementById('avatar-preview-img');
+  const initials = document.getElementById('avatar-preview-initials');
+  if (!img) return;
+  img.src           = src;
+  img.style.display = 'block';
+  if (initials) initials.style.display = 'none';
 }
 
 function _updateModalAvatarPlaceholder() {
-  const box  = document.getElementById('avatar-preview-box');
-  if (!box) return;
+  const img      = document.getElementById('avatar-preview-img');
+  const initEl   = document.getElementById('avatar-preview-initials');
+  if (!initEl) return;
   const name  = document.getElementById('field-fullName').value.trim();
   const init  = _getColorInitials(name || '?');
   const color = _nameToColor(name);
-  box.style.background = color;
-  box.innerHTML = `<span style="color:#fff;font-size:1.2rem;font-weight:700;">${escapeHtml(init)}</span>`;
+  initEl.textContent   = init;
+  initEl.style.background = color;
+  initEl.style.display = 'flex';
+  if (img) { img.src = ''; img.style.display = 'none'; }
 }
 
 function _resetAvatarPreview(member = null) {
-  const box = document.getElementById('avatar-preview-box');
-  if (!box) return;
+  const img    = document.getElementById('avatar-preview-img');
+  const initEl = document.getElementById('avatar-preview-initials');
   _memState.avatarDataUrl = null;
-  document.getElementById('field-avatar').value = '';
+  const fileInput = document.getElementById('field-avatar');
+  if (fileInput) fileInput.value = '';
 
   if (member?.avatarPath || member?.avatar) {
     _setModalAvatarImage(member.avatarPath || member.avatar);
@@ -294,8 +346,12 @@ function _resetAvatarPreview(member = null) {
     const name  = member?.fullName || member?.mssv || '';
     const init  = _getColorInitials(name || '?');
     const color = _nameToColor(name);
-    box.style.background = color;
-    box.innerHTML = `<span style="color:#fff;font-size:1.2rem;font-weight:700;">${escapeHtml(init)}</span>`;
+    if (initEl) {
+      initEl.textContent      = init;
+      initEl.style.background = color;
+      initEl.style.display    = 'flex';
+    }
+    if (img) { img.src = ''; img.style.display = 'none'; }
   }
 }
 
@@ -306,13 +362,15 @@ function _openAddModal() {
   document.getElementById('modal-member-title').textContent = 'Thêm thành viên';
   document.getElementById('form-member').reset();
   document.getElementById('field-id').value = '';
-  document.getElementById('hint-password').textContent = 'Bắt buộc khi tạo mới.';
-  document.getElementById('password-required').style.display = 'inline';
-  document.getElementById('className-required').style.display = 'inline';
 
-  // Hiện ô xác nhận mật khẩu
+  // Hiện phần mật khẩu khi thêm mới
+  const pwSection = document.getElementById('password-section');
+  if (pwSection) pwSection.style.display = 'block';
   const confirmGroup = document.getElementById('confirm-password-group');
   if (confirmGroup) confirmGroup.style.display = 'block';
+
+  document.getElementById('password-required').style.display = 'inline';
+  document.getElementById('className-required').style.display = 'inline';
   document.getElementById('hint-password-confirm').style.display = 'none';
 
   _resetAvatarPreview(null);
@@ -334,25 +392,13 @@ function _openEditModal(id) {
   document.getElementById('field-className').value = member.className  || '';
   document.getElementById('field-email').value     = member.email      || '';
   document.getElementById('field-status').value    = member.status     || 'Hoạt động';
-  document.getElementById('field-password').value  = '';
-  document.getElementById('field-password-confirm').value = '';
-  document.getElementById('hint-password').textContent = 'Để trống nếu không đổi mật khẩu.';
-  document.getElementById('password-required').style.display = 'none';
   document.getElementById('className-required').style.display = 'none';
 
-  // Khi sửa, ô xác nhận chỉ hiện nếu người dùng nhập mật khẩu mới
+  // Ẩn hoàn toàn phần mật khẩu khi sửa
+  const pwSection = document.getElementById('password-section');
+  if (pwSection) pwSection.style.display = 'none';
   const confirmGroup = document.getElementById('confirm-password-group');
   if (confirmGroup) confirmGroup.style.display = 'none';
-  document.getElementById('hint-password-confirm').style.display = 'none';
-
-  // Khi nhập password thì hiện ô xác nhận
-  const pwField = document.getElementById('field-password');
-  const _showConfirmIfNeeded = () => {
-    if (confirmGroup) confirmGroup.style.display = pwField.value ? 'block' : 'none';
-  };
-  pwField.removeEventListener('input', pwField._confirmToggle);
-  pwField._confirmToggle = _showConfirmIfNeeded;
-  pwField.addEventListener('input', pwField._confirmToggle);
 
   _resetAvatarPreview(member);
   _populateRoleDropdown(member.roleId?._id || member.roleId || null);
@@ -431,34 +477,38 @@ async function _handleSave() {
   const fullName  = document.getElementById('field-fullName').value.trim();
   const mssv      = document.getElementById('field-mssv').value.trim();
   const className = document.getElementById('field-className').value.trim();
-  const password  = document.getElementById('field-password').value;
-  const confirm   = document.getElementById('field-password-confirm').value;
 
   if (!fullName)  { showToast('Vui lòng nhập họ tên.', 'warning'); return; }
   if (!mssv)      { showToast('Vui lòng nhập MSSV.', 'warning'); return; }
-  if (!id && !className) { showToast('Vui lòng nhập lớp học (bắt buộc khi tạo mới).', 'warning'); return; }
-  if (!id && !password)  { showToast('Vui lòng nhập mật khẩu cho thành viên mới.', 'warning'); return; }
+  if (!document.getElementById('field-roleId').value) { showToast('Vui lòng chọn vai trò.', 'warning'); return; }
 
-  // Kiểm tra xác nhận mật khẩu khi có nhập mật khẩu
-  if (password) {
+  const payload = {
+    fullName,
+    mssv,
+    className: className || undefined,
+    email:     document.getElementById('field-email').value.trim() || undefined,
+    roleId:    document.getElementById('field-roleId').value,
+    status:    document.getElementById('field-status').value,
+  };
+
+  if (!id) {
+    // Chế độ THÊM MỚI: bắt buộc có mật khẩu và lớp
+    if (!className) { showToast('Vui lòng nhập lớp học (bắt buộc khi tạo mới).', 'warning'); return; }
+    const password = document.getElementById('field-password').value;
+    const confirm  = document.getElementById('field-password-confirm').value;
+    if (!password) { showToast('Vui lòng nhập mật khẩu cho thành viên mới.', 'warning'); return; }
     if (password !== confirm) {
       document.getElementById('hint-password-confirm').style.display = 'block';
       showToast('Mật khẩu xác nhận không khớp!', 'warning');
       return;
     }
     document.getElementById('hint-password-confirm').style.display = 'none';
+    payload.passwordHash = password;
+    payload.password     = password;
   }
+  // Chế độ SỬA: không gửi password, backend giữ nguyên mật khẩu cũ
 
-  const payload = {
-    fullName,
-    mssv,
-    className: className || undefined,
-    email:     document.getElementById('field-email').value.trim()     || undefined,
-    roleId:    document.getElementById('field-roleId').value           || undefined,
-    status:    document.getElementById('field-status').value,
-  };
-  if (password)                  payload.passwordHash = password;
-  if (_memState.avatarDataUrl)   payload.avatarPath   = _memState.avatarDataUrl;
+  if (_memState.avatarDataUrl) payload.avatarPath = _memState.avatarDataUrl;
 
   showLoading();
   try {

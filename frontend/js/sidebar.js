@@ -28,20 +28,17 @@ function _resolveAvatarUrl(avatarPath) {
 
 /* ── Build HTML thẻ avatar (ảnh hoặc chữ tắt) ── */
 function _buildAvatarHtml(avatarUrl, initials, size = 'sm') {
-  const dim = size === 'lg' ? '42px' : '34px';
-  const fs  = size === 'lg' ? '1rem'  : '0.78rem';
+  const fs = size === 'lg' ? '1rem' : '0.78rem';
+  const safeInitials = (initials || 'U').replace(/'/g, '&#39;');
   if (avatarUrl) {
+    // Dùng data-initials để tránh lỗi escape phức tạp trong onerror
     return `<img src="${avatarUrl}" alt="Avatar"
-      style="width:${dim};height:${dim};border-radius:50%;object-fit:cover;display:block;"
-      onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-      <span style="display:none;width:${dim};height:${dim};border-radius:50%;
-        background:linear-gradient(135deg,var(--primary),#6c8fef);
-        align-items:center;justify-content:center;font-size:${fs};font-weight:800;color:#fff;">
-        ${initials}
-      </span>`;
+      data-initials="${safeInitials}"
+      style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;"
+      onerror="var el=document.createElement('span');el.textContent=this.dataset.initials||'U';el.style.cssText='display:flex;width:100%;height:100%;border-radius:50%;background:linear-gradient(135deg,#4e73df,#6c8fef);align-items:center;justify-content:center;font-size:${fs};font-weight:800;color:#fff;';this.parentNode.replaceChild(el,this);">`;
   }
-  // Luôn trả về avatar chữ cái đầu nếu không có avatarUrl
-  return `<span style="width:${dim};height:${dim};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${fs};font-weight:800;color:#fff;background:linear-gradient(135deg,var(--primary),#6c8fef);">${initials}</span>`;
+  // Chữ cái đầu nếu không có avatar
+  return `<span style="display:flex;width:100%;height:100%;border-radius:50%;align-items:center;justify-content:center;font-size:${fs};font-weight:800;color:#fff;background:linear-gradient(135deg,#4e73df,#6c8fef);">${safeInitials}</span>`;
 }
 
 function buildSidebar(activePage) {
@@ -132,13 +129,10 @@ function buildSidebar(activePage) {
         </div>
 
         <!-- Dark mode -->
-        <div class="sidebar-darkmode-row">
-          <span class="sidebar-darkmode-label">🌙 Dark mode</span>
-          <label class="dm-switch">
-            <input type="checkbox" id="darkModeToggle">
-            <span class="dm-slider"></span>
-          </label>
-        </div>
+        <button class="dm-toggle-btn" id="darkModeToggle" title="Chuyển chế độ sáng/tối" aria-label="Toggle dark mode">
+          <span class="dm-bulb-icon" aria-hidden="true">💡</span>
+          <span class="dm-toggle-label nav-label">Dark mode</span>
+        </button>
 
         <hr class="sidebar-divider">
 
@@ -317,11 +311,16 @@ function _initSidebarLogic() {
   const DARK_KEY = 'dark_mode';
   function applyDark(on) {
     document.body.classList.toggle('dark-mode', on);
-    if (dmToggle) dmToggle.checked = on;
+    if (dmToggle) {
+      dmToggle.classList.toggle('is-dark', on);
+      dmToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
     localStorage.setItem(DARK_KEY, on ? '1' : '0');
   }
   applyDark(localStorage.getItem(DARK_KEY) === '1');
-  dmToggle?.addEventListener('change', () => applyDark(dmToggle.checked));
+  dmToggle?.addEventListener('click', () => {
+    applyDark(!document.body.classList.contains('dark-mode'));
+  });
 
   /* ════ User popup ════ */
   const openPopup  = () => { userPopup?.classList.add('active');    userPopupBd?.classList.add('active'); };

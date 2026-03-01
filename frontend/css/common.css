@@ -20,7 +20,7 @@
   --light:           #f8f9fc;
   --dark:            #5a5c69;
   --white:           #ffffff;
-  --sidebar-bg:      #343a40;
+  --sidebar-bg:      #1a2236;
   --sidebar-hover:   #23272b;
   --border-color:    #e3e6f0;
 
@@ -138,14 +138,14 @@ a:hover { color: var(--primary-dark); }
   color: var(--white);
   line-height: 1.5;
 }
-.btn:hover      { background: var(--primary-dark); transform: translateY(-1px); color: var(--white); }
+.btn:hover      { background: var(--primary); transform: translateY(-1px); color: #ffffff; filter: brightness(1.12); }
 .btn:active     { transform: translateY(0); }
 
 .btn-danger     { background: var(--danger); }
 .btn-danger:hover     { background: var(--danger-dark); }
 
-.btn-warning    { background: var(--warning); color: var(--dark); }
-.btn-warning:hover    { background: var(--warning-dark); }
+.btn-warning    { background: var(--warning); color: #ffffff; }
+.btn-warning:hover    { background: var(--warning-dark); color: #ffffff; }
 
 .btn-info       { background: var(--info); }
 .btn-info:hover       { background: var(--info-dark); }

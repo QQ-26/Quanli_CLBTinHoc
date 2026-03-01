@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,279 +8,289 @@
   <link rel="stylesheet" href="css/common.css" />
   <link rel="stylesheet" href="css/sidebar.css" />
   <link rel="stylesheet" href="css/sessions.css" />
+
+  <link rel="apple-touch-icon" sizes="180x180" href="./img/favicon/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./img/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="./img/favicon/favicon-16x16.png" />
+  <link rel="manifest" href="./img/favicon/site.webmanifest" />
 </head>
+
 <body>
 
-<div class="layout-wrapper">
-  <main class="main-content">
-    <div class="page-container">
+  <div class="layout-wrapper">
+    <main class="main-content">
+      <div class="page-container">
 
-      <!-- Page Header -->
-      <div class="page-header">
-        <div>
-          <div class="page-title">📅 Buổi sinh hoạt</div>
-          <div class="page-subtitle">Quản lý các buổi sinh hoạt của câu lạc bộ</div>
-        </div>
-        <div class="header-actions">
-          <div class="search-box">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm buổi sinh hoạt..." />
+        <!-- Page Header -->
+        <div class="page-header">
+          <div>
+            <div class="page-title">📅 Buổi sinh hoạt</div>
+            <div class="page-subtitle">Quản lý các buổi sinh hoạt của câu lạc bộ</div>
           </div>
-          <button id="btnAddSession" class="btn admin-only" onclick="openAddModal()">
-            ＋ Thêm buổi
+          <div class="header-actions">
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm buổi sinh hoạt..." />
+            </div>
+            <button id="btnAddSession" class="btn admin-only" onclick="openAddModal()">
+              ＋ Thêm buổi
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="session-stats" id="sessionStats">
+          <div class="stat-chip skeleton" style="height:52px;"></div>
+          <div class="stat-chip skeleton" style="height:52px;"></div>
+          <div class="stat-chip skeleton" style="height:52px;"></div>
+          <div class="stat-chip skeleton" style="height:52px;"></div>
+        </div>
+
+        <!-- Tab filter -->
+        <div class="tab-filter">
+          <button class="tab-btn active" data-type="all">🗂️ Tất cả</button>
+          <button class="tab-btn" data-type="regular">📌 Sinh hoạt cố định</button>
+          <button class="tab-btn" data-type="other">🎯 Hoạt động khác</button>
+        </div>
+
+        <!-- Session cards grid -->
+        <div class="sessions-grid" id="sessionsGrid">
+          <div class="session-card skeleton" style="height:170px;"></div>
+          <div class="session-card skeleton" style="height:170px;"></div>
+          <div class="session-card skeleton" style="height:170px;"></div>
+          <div class="session-card skeleton" style="height:170px;"></div>
+          <div class="session-card skeleton" style="height:170px;"></div>
+          <div class="session-card skeleton" style="height:170px;"></div>
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState" style="display:none;">
+          <span class="empty-state-icon">📅</span>
+          <p>Chưa có buổi sinh hoạt nào. <span class="admin-only">Hãy thêm buổi đầu tiên!</span></p>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+     MODAL: Thêm / Sửa buổi sinh hoạt
+     ══════════════════════════════════════════ -->
+  <div class="modal-overlay" id="sessionModal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 id="sessionModalTitle">Thêm buổi sinh hoạt</h3>
+        <button class="modal-close" onclick="closeModal('sessionModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="sessionId" />
+
+        <!-- Loại buổi -->
+        <div class="form-group">
+          <label>Loại buổi sinh hoạt <span class="required">*</span></label>
+          <div class="type-radio-group">
+            <label class="type-radio-option" id="typeOptRegular">
+              <input type="radio" name="sessionType" id="sessionType" value="regular" checked />
+              <span class="type-radio-icon">📌</span>
+              <div>
+                <div class="type-radio-title">Sinh hoạt cố định</div>
+                <div class="type-radio-desc">Buổi học thường kỳ hàng tuần (VD: Nhập môn lập trình, Lập trình web...)
+                </div>
+              </div>
+            </label>
+            <label class="type-radio-option" id="typeOptOther">
+              <input type="radio" name="sessionType" value="other" />
+              <span class="type-radio-icon">🎯</span>
+              <div>
+                <div class="type-radio-title">Hoạt động khác</div>
+                <div class="type-radio-desc">Sự kiện, workshop, hoạt động ngoại khoá ngoài lịch thường kỳ</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="sessionName">Tên buổi sinh hoạt <span class="required">*</span></label>
+            <input type="text" id="sessionName" class="form-control" placeholder="VD: Nhập môn lập trình - Tuần 5" />
+          </div>
+          <div class="form-group">
+            <label for="sessionDateOnly">Ngày tổ chức</label>
+            <input type="date" id="sessionDateOnly" class="form-control" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="sessionStartTime">Giờ bắt đầu</label>
+            <input type="time" id="sessionStartTime" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label for="sessionEndTime">Giờ kết thúc</label>
+            <input type="time" id="sessionEndTime" class="form-control" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="sessionLocation">Địa điểm</label>
+            <input type="text" id="sessionLocation" class="form-control" placeholder="VD: Phòng B101" />
+          </div>
+          <div class="form-group">
+            <label for="sessionMaxParticipants">Số lượng tối đa</label>
+            <input type="number" id="sessionMaxParticipants" class="form-control" placeholder="50" min="1" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="sessionDescription">Mô tả</label>
+          <textarea id="sessionDescription" class="form-control session-desc-textarea"
+            placeholder="Mô tả nội dung, mục tiêu hoặc lưu ý của buổi sinh hoạt..." rows="3"></textarea>
+        </div>
+
+        <!-- Instructors -->
+        <div class="form-group">
+          <label>Người phụ trách</label>
+          <div id="instructorsList" class="instructors-list"></div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addInstructorRow()" style="margin-top:.5rem;">
+            ＋ Thêm người phụ trách
           </button>
         </div>
       </div>
-
-      <!-- Stats row -->
-      <div class="session-stats" id="sessionStats">
-        <div class="stat-chip skeleton" style="height:52px;"></div>
-        <div class="stat-chip skeleton" style="height:52px;"></div>
-        <div class="stat-chip skeleton" style="height:52px;"></div>
-        <div class="stat-chip skeleton" style="height:52px;"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('sessionModal')">Hủy</button>
+        <button class="btn" id="btnSaveSession" onclick="saveSession()">💾 Lưu</button>
       </div>
-
-      <!-- Tab filter -->
-      <div class="tab-filter">
-        <button class="tab-btn active" data-type="all">🗂️ Tất cả</button>
-        <button class="tab-btn" data-type="regular">📌 Sinh hoạt cố định</button>
-        <button class="tab-btn" data-type="other">🎯 Hoạt động khác</button>
-      </div>
-
-      <!-- Session cards grid -->
-      <div class="sessions-grid" id="sessionsGrid">
-        <div class="session-card skeleton" style="height:170px;"></div>
-        <div class="session-card skeleton" style="height:170px;"></div>
-        <div class="session-card skeleton" style="height:170px;"></div>
-        <div class="session-card skeleton" style="height:170px;"></div>
-        <div class="session-card skeleton" style="height:170px;"></div>
-        <div class="session-card skeleton" style="height:170px;"></div>
-      </div>
-
-      <!-- Empty state -->
-      <div class="empty-state" id="emptyState" style="display:none;">
-        <span class="empty-state-icon">📅</span>
-        <p>Chưa có buổi sinh hoạt nào. <span class="admin-only">Hãy thêm buổi đầu tiên!</span></p>
-      </div>
-
-    </div>
-  </main>
-</div>
-
-<!-- ══════════════════════════════════════════
-     MODAL: Thêm / Sửa buổi sinh hoạt
-     ══════════════════════════════════════════ -->
-<div class="modal-overlay" id="sessionModal">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <h3 id="sessionModalTitle">Thêm buổi sinh hoạt</h3>
-      <button class="modal-close" onclick="closeModal('sessionModal')">&times;</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="sessionId" />
-
-      <!-- Loại buổi -->
-      <div class="form-group">
-        <label>Loại buổi sinh hoạt <span class="required">*</span></label>
-        <div class="type-radio-group">
-          <label class="type-radio-option" id="typeOptRegular">
-            <input type="radio" name="sessionType" id="sessionType" value="regular" checked />
-            <span class="type-radio-icon">📌</span>
-            <div>
-              <div class="type-radio-title">Sinh hoạt cố định</div>
-              <div class="type-radio-desc">Buổi học thường kỳ hàng tuần (VD: Nhập môn lập trình, Lập trình web...)</div>
-            </div>
-          </label>
-          <label class="type-radio-option" id="typeOptOther">
-            <input type="radio" name="sessionType" value="other" />
-            <span class="type-radio-icon">🎯</span>
-            <div>
-              <div class="type-radio-title">Hoạt động khác</div>
-              <div class="type-radio-desc">Sự kiện, workshop, hoạt động ngoại khoá ngoài lịch thường kỳ</div>
-            </div>
-          </label>
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label for="sessionName">Tên buổi sinh hoạt <span class="required">*</span></label>
-          <input type="text" id="sessionName" class="form-control" placeholder="VD: Nhập môn lập trình - Tuần 5" />
-        </div>
-        <div class="form-group">
-          <label for="sessionDateOnly">Ngày tổ chức</label>
-          <input type="date" id="sessionDateOnly" class="form-control" />
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="sessionStartTime">Giờ bắt đầu</label>
-          <input type="time" id="sessionStartTime" class="form-control" />
-        </div>
-        <div class="form-group">
-          <label for="sessionEndTime">Giờ kết thúc</label>
-          <input type="time" id="sessionEndTime" class="form-control" />
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="sessionLocation">Địa điểm</label>
-          <input type="text" id="sessionLocation" class="form-control" placeholder="VD: Phòng B101" />
-        </div>
-        <div class="form-group">
-          <label for="sessionMaxParticipants">Số lượng tối đa</label>
-          <input type="number" id="sessionMaxParticipants" class="form-control" placeholder="50" min="1" />
-        </div>
-      </div>
-      <div class="form-group">
-        <label for="sessionDescription">Mô tả</label>
-        <textarea id="sessionDescription" class="form-control session-desc-textarea"
-          placeholder="Mô tả nội dung, mục tiêu hoặc lưu ý của buổi sinh hoạt..." rows="3"></textarea>
-      </div>
-
-      <!-- Instructors -->
-      <div class="form-group">
-        <label>Người phụ trách</label>
-        <div id="instructorsList" class="instructors-list"></div>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="addInstructorRow()" style="margin-top:.5rem;">
-          ＋ Thêm người phụ trách
-        </button>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('sessionModal')">Hủy</button>
-      <button class="btn" id="btnSaveSession" onclick="saveSession()">💾 Lưu</button>
     </div>
   </div>
-</div>
 
-<!-- ══════════════════════════════════════════
+  <!-- ══════════════════════════════════════════
      MODAL: Chi tiết buổi sinh hoạt + Điểm danh
      ══════════════════════════════════════════ -->
-<div class="modal-overlay" id="detailModal">
-  <div class="modal modal-xl">
-    <div class="modal-header">
-      <h3 id="detailModalTitle">Chi tiết buổi sinh hoạt</h3>
-      <button class="modal-close" onclick="closeModal('detailModal')">&times;</button>
-    </div>
-    <div class="modal-body">
-      <!-- Session info -->
-      <div class="session-detail-info" id="sessionDetailInfo"></div>
-
-      <!-- Divider -->
-      <div class="section-divider">
-        <span>✅ Danh sách điểm danh</span>
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <h3 id="detailModalTitle">Chi tiết buổi sinh hoạt</h3>
+        <button class="modal-close" onclick="closeModal('detailModal')">&times;</button>
       </div>
+      <div class="modal-body">
+        <!-- Session info -->
+        <div class="session-detail-info" id="sessionDetailInfo"></div>
 
-      <!-- Attendance toolbar -->
-      <div class="attendance-toolbar">
-        <div class="attendance-stats" id="attendanceStats">
-          <span class="att-badge att-joined">Tham gia: <strong id="attCountJoined">0</strong></span>
-          <span class="att-badge att-present">Có mặt: <strong id="attCountPresent">0</strong></span>
-          <span class="att-badge att-absent">Vắng: <strong id="attCountAbsent">0</strong></span>
-          <span class="att-badge att-excused">Có phép: <strong id="attCountExcused">0</strong></span>
-          <span class="att-badge att-total">Tổng: <strong id="attCountTotal">0</strong></span>
+        <!-- Divider -->
+        <div class="section-divider">
+          <span>✅ Danh sách điểm danh</span>
         </div>
-        <div class="attendance-actions admin-only">
-          <button class="btn btn-sm btn-success" onclick="markAllPresent()">✅ Điểm danh tất cả</button>
-          <button class="btn btn-sm btn-secondary" onclick="saveAllAttendance()">💾 Lưu điểm danh</button>
+
+        <!-- Attendance toolbar -->
+        <div class="attendance-toolbar">
+          <div class="attendance-stats" id="attendanceStats">
+            <span class="att-badge att-joined">Tham gia: <strong id="attCountJoined">0</strong></span>
+            <span class="att-badge att-present">Có mặt: <strong id="attCountPresent">0</strong></span>
+            <span class="att-badge att-absent">Vắng: <strong id="attCountAbsent">0</strong></span>
+            <span class="att-badge att-excused">Có phép: <strong id="attCountExcused">0</strong></span>
+            <span class="att-badge att-total">Tổng: <strong id="attCountTotal">0</strong></span>
+          </div>
+          <div class="attendance-actions admin-only">
+            <button class="btn btn-sm btn-success" onclick="markAllPresent()">✅ Điểm danh tất cả</button>
+            <button class="btn btn-sm btn-secondary" onclick="saveAllAttendance()">💾 Lưu điểm danh</button>
+          </div>
         </div>
-      </div>
 
-      <!-- Attendance search & sort -->
-      <div class="att-search-bar">
-        <div class="att-search-input-wrap">
-          <span class="att-search-icon">🔍</span>
-          <input type="text" id="attSearchInput" class="form-control att-search-input"
-            placeholder="Tìm theo tên hoặc MSSV..."
-            oninput="onAttSearchInput(this.value)" />
+        <!-- Attendance search & sort -->
+        <div class="att-search-bar">
+          <div class="att-search-input-wrap">
+            <span class="att-search-icon">🔍</span>
+            <input type="text" id="attSearchInput" class="form-control att-search-input"
+              placeholder="Tìm theo tên hoặc MSSV..." oninput="onAttSearchInput(this.value)" />
+          </div>
+          <button id="btnAttSortAZ" class="btn btn-sm btn-outline-secondary att-sort-btn" onclick="toggleAttSortAZ()"
+            title="Sắp xếp A-Z theo tên">
+            🔤 A→Z
+          </button>
         </div>
-        <button id="btnAttSortAZ" class="btn btn-sm btn-outline-secondary att-sort-btn"
-          onclick="toggleAttSortAZ()" title="Sắp xếp A-Z theo tên">
-          🔤 A→Z
-        </button>
+
+        <!-- Attendance table -->
+        <div class="table-wrapper">
+          <table class="table" id="attendanceTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>MSSV</th>
+                <th>Họ tên</th>
+                <th class="th-participate">
+                  <span>Tham gia</span>
+                  <label class="check-all-wrap admin-only" title="Chọn / bỏ chọn tất cả">
+                    <input type="checkbox" id="checkAllParticipate" onchange="toggleAllParticipate(this.checked)" />
+                  </label>
+                </th>
+                <th>Trạng thái</th>
+                <th>Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody id="attendanceBody">
+              <tr>
+                <td colspan="6" style="text-align:center;color:#bbb;padding:2rem;">Đang tải...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Attendance pagination -->
+        <div id="attendancePagination" class="att-pagination"></div>
+
+        <!-- Biểu đồ thống kê -->
+        <div class="section-divider" style="margin-top:1.5rem;">
+          <span>📊 Thống kê điểm danh</span>
+        </div>
+        <div class="attendance-chart-area" id="attendanceChartArea"></div>
+
       </div>
-
-      <!-- Attendance table -->
-      <div class="table-wrapper">
-        <table class="table" id="attendanceTable">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>MSSV</th>
-              <th>Họ tên</th>
-              <th class="th-participate">
-                <span>Tham gia</span>
-                <label class="check-all-wrap admin-only" title="Chọn / bỏ chọn tất cả">
-                  <input type="checkbox" id="checkAllParticipate" onchange="toggleAllParticipate(this.checked)" />
-                </label>
-              </th>
-              <th>Trạng thái</th>
-              <th>Ghi chú</th>
-            </tr>
-          </thead>
-          <tbody id="attendanceBody">
-            <tr><td colspan="6" style="text-align:center;color:#bbb;padding:2rem;">Đang tải...</td></tr>
-          </tbody>
-        </table>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('detailModal')">Đóng</button>
+        <button class="btn admin-only" onclick="saveAllAttendance()">💾 Lưu điểm danh</button>
       </div>
-
-      <!-- Attendance pagination -->
-      <div id="attendancePagination" class="att-pagination"></div>
-
-      <!-- Biểu đồ thống kê -->
-      <div class="section-divider" style="margin-top:1.5rem;">
-        <span>📊 Thống kê điểm danh</span>
-      </div>
-      <div class="attendance-chart-area" id="attendanceChartArea"></div>
-
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('detailModal')">Đóng</button>
-      <button class="btn admin-only" onclick="saveAllAttendance()">💾 Lưu điểm danh</button>
     </div>
   </div>
-</div>
 
-<!-- ══════════════════════════════════════════
+  <!-- ══════════════════════════════════════════
      MODAL: Xác nhận xóa
      ══════════════════════════════════════════ -->
-<div class="modal-overlay" id="deleteModal">
-  <div class="modal" style="max-width:420px;">
-    <div class="modal-header">
-      <h3>Xác nhận xóa</h3>
-      <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div class="delete-warning">
-        <div class="delete-icon">🗑️</div>
-        <p>Bạn có chắc chắn muốn xóa buổi sinh hoạt <strong id="deleteSessionName"></strong>?</p>
-        <p class="delete-note">Thao tác này sẽ xóa toàn bộ dữ liệu điểm danh liên quan và <strong>không thể hoàn tác</strong>.</p>
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h3>Xác nhận xóa</h3>
+        <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="delete-warning">
+          <div class="delete-icon">🗑️</div>
+          <p>Bạn có chắc chắn muốn xóa buổi sinh hoạt <strong id="deleteSessionName"></strong>?</p>
+          <p class="delete-note">Thao tác này sẽ xóa toàn bộ dữ liệu điểm danh liên quan và <strong>không thể hoàn
+              tác</strong>.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('deleteModal')">Hủy</button>
+        <button class="btn btn-danger" onclick="confirmDelete()">Xóa</button>
       </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('deleteModal')">Hủy</button>
-      <button class="btn btn-danger" onclick="confirmDelete()">Xóa</button>
-    </div>
   </div>
-</div>
 
-<script src="js/api.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/sidebar.js"></script>
-<script src="js/sessions.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script src="js/sessions.js"></script>
 
-<script>
-// Sync radio button visual state
-document.querySelectorAll('input[name="sessionType"]').forEach(radio => {
-    radio.addEventListener('change', () => {
+  <script>
+    // Sync radio button visual state
+    document.querySelectorAll('input[name="sessionType"]').forEach(radio => {
+      radio.addEventListener('change', () => {
         document.querySelectorAll('.type-radio-option').forEach(opt => opt.classList.remove('selected'));
         radio.closest('.type-radio-option').classList.add('selected');
+      });
     });
-});
-// Init state
-document.querySelector('input[name="sessionType"]:checked')
-    ?.closest('.type-radio-option')?.classList.add('selected');
-</script>
+    // Init state
+    document.querySelector('input[name="sessionType"]:checked')
+      ?.closest('.type-radio-option')?.classList.add('selected');
+  </script>
 </body>
+
 </html>

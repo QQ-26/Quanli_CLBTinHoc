@@ -1,44 +1,29 @@
 /* ============================================================
-   dashboard.js — Logic trang Tổng quan
-   Phụ thuộc: api.js, utils.js, sidebar.js (load trước)
-   Biến global duy nhất: _dashState (prefix _ để tránh conflict)
+   dashboard.js
    ============================================================ */
 
-// State nội bộ, prefix _ để tránh conflict với file khác
 const _dashState = {
-  sessions: [],
-  members:  [],
-  memberStats: null,
-  attendanceAll: [],
+  sessions: [], members: [], memberStats: null, attendanceAll: [],
 };
 
-/* ════════════════════════════════════════
-   INIT
-   ════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async () => {
   requireAuth();
   initLayout('dashboard');
   initRoleRestrictions();
-
   _renderTopbar();
   _renderStatsSkeleton();
-
   await _loadAll();
 });
 
-/* ── Top bar: lời chào + ngày ── */
+/* ── Top bar ── */
 function _renderTopbar() {
   const el = document.getElementById('dash-topbar');
   if (!el) return;
-
   const user     = getCurrentUser();
   const greeting = getGreeting();
   const name     = user ? escapeHtml(user.fullName || user.mssv || 'bạn') : 'bạn';
   const now      = new Date();
-  const dateStr  = now.toLocaleDateString('vi-VN', {
-    weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric',
-  });
-
+  const dateStr  = now.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
   el.innerHTML = `
     <div class="dash-topbar-greeting">
       <h2>${greeting}, ${name}! 👋</h2>
@@ -49,44 +34,38 @@ function _renderTopbar() {
     </div>`;
 }
 
-/* ── Skeleton cards trong khi chờ API ── */
 function _renderStatsSkeleton() {
   const grid = document.getElementById('dash-stats-grid');
   if (!grid) return;
   grid.innerHTML = Array(2).fill(`
-    <div class="card" style="padding:1.25rem; display:flex; gap:1rem; align-items:center;">
-      <div class="skeleton" style="width:50px;height:50px;border-radius:50%;flex-shrink:0;"></div>
+    <div class="card" style="padding:1.4rem;display:flex;gap:1rem;align-items:center;border-radius:12px;">
+      <div class="skeleton" style="width:52px;height:52px;border-radius:14px;flex-shrink:0;"></div>
       <div style="flex:1">
         <div class="skeleton" style="height:10px;width:55%;margin-bottom:.55rem;"></div>
-        <div class="skeleton" style="height:28px;width:40%;"></div>
+        <div class="skeleton" style="height:30px;width:40%;"></div>
       </div>
     </div>`).join('');
 }
 
-/* ════════════════════════════════════════
-   DATA LOADING
-   ════════════════════════════════════════ */
+/* ── Load all ── */
 async function _loadAll() {
   showLoading();
   try {
-    // Gọi song song tất cả API
     const [memberStatsRes, sessionsRes, membersRes, attendanceRes] = await Promise.allSettled([
       MemberAPI.getStats(),
       SessionAPI.getAll(),
       MemberAPI.getAll(1, 100),
       AttendanceAPI.getAll(),
     ]);
-
-    _dashState.memberStats   = memberStatsRes.status   === 'fulfilled' ? memberStatsRes.value   : null;
-    _dashState.sessions      = sessionsRes.status      === 'fulfilled' ? (sessionsRes.value || [])      : [];
-    _dashState.members       = membersRes.status       === 'fulfilled' ? (membersRes.value?.members || []) : [];
-    _dashState.attendanceAll = attendanceRes.status    === 'fulfilled' ? (attendanceRes.value || [])   : [];
+    _dashState.memberStats   = memberStatsRes.status === 'fulfilled' ? memberStatsRes.value : null;
+    _dashState.sessions      = sessionsRes.status    === 'fulfilled' ? (sessionsRes.value || []) : [];
+    _dashState.members       = membersRes.status     === 'fulfilled' ? (membersRes.value?.members || []) : [];
+    _dashState.attendanceAll = attendanceRes.status  === 'fulfilled' ? (attendanceRes.value || []) : [];
 
     _renderStatCards();
     _renderRecentSessions();
     _renderRecentMembers();
-    _renderAttendanceLineChart();
-
+    _renderAttendanceChart();
   } catch (err) {
     console.error('[Dashboard]', err);
     showToast('Lỗi tải dữ liệu tổng quan.', 'danger');
@@ -95,41 +74,19 @@ async function _loadAll() {
   }
 }
 
-/* ════════════════════════════════════════
-   RENDER: STAT CARDS (chỉ 2 thẻ)
-   ════════════════════════════════════════ */
+/* ── Stat cards ── */
 function _renderStatCards() {
   const grid = document.getElementById('dash-stats-grid');
   if (!grid) return;
-
-  const stats = _dashState.memberStats;
-
-  // Tổng thành viên
+  const stats        = _dashState.memberStats;
   const totalMembers = stats?.total ?? '—';
-
-  // Thành viên "Hoạt động"
-  const activeCount = stats?.detail?.find(d => d._id === 'Hoạt động')?.count ?? '—';
-
-  // Tổng buổi sinh hoạt
+  const activeCount  = stats?.detail?.find(d => d._id === 'Hoạt động')?.count ?? '—';
   const totalSessions = _dashState.sessions.length;
 
   const cards = [
-    {
-      variant: 'dash-primary',
-      icon: '👥',
-      label: 'Tổng thành viên',
-      value: totalMembers,
-      sub: activeCount !== '—' ? `${activeCount} đang hoạt động` : '',
-    },
-    {
-      variant: 'dash-success',
-      icon: '📅',
-      label: 'Buổi sinh hoạt',
-      value: totalSessions,
-      sub: 'Tổng cộng',
-    },
+    { variant: 'dash-primary', icon: '👥', label: 'Tổng thành viên', value: totalMembers, sub: activeCount !== '—' ? `${activeCount} đang hoạt động` : '' },
+    { variant: 'dash-success', icon: '📅', label: 'Buổi sinh hoạt',  value: totalSessions, sub: 'Tổng cộng' },
   ];
-
   grid.innerHTML = cards.map(c => `
     <div class="dash-stat-card ${escapeHtml(c.variant)}">
       <div class="dash-stat-icon">${c.icon}</div>
@@ -141,37 +98,22 @@ function _renderStatCards() {
     </div>`).join('');
 }
 
-/* ════════════════════════════════════════
-   RENDER: RECENT SESSIONS
-   ════════════════════════════════════════ */
+/* ── Recent sessions ── */
 function _renderRecentSessions() {
   const container = document.getElementById('dash-sessions-list');
   if (!container) return;
-
-  // Sắp xếp theo ngày mới nhất, lấy 5 cái
   const sessions = [..._dashState.sessions]
-    .sort((a, b) => new Date(b.sessionDate) - new Date(a.sessionDate))
-    .slice(0, 5);
-
+    .sort((a, b) => new Date(b.sessionDate) - new Date(a.sessionDate)).slice(0, 5);
   if (!sessions.length) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <span class="empty-state-icon">📭</span>
-        <p>Chưa có buổi sinh hoạt nào.</p>
-      </div>`;
+    container.innerHTML = `<div class="empty-state"><span class="empty-state-icon">📭</span><p>Chưa có buổi sinh hoạt nào.</p></div>`;
     return;
   }
-
-  // Xác định trạng thái dựa trên ngày (backend không có field status)
   const now = Date.now();
   container.innerHTML = sessions.map(s => {
     const d = new Date(s.sessionDate);
     let dotClass, badgeClass, statusLabel;
-    if (d > now) {
-      dotClass = 'upcoming'; badgeClass = 'badge-info'; statusLabel = 'Sắp diễn ra';
-    } else {
-      dotClass = 'done';     badgeClass = 'badge-success'; statusLabel = 'Đã diễn ra';
-    }
+    if (d > now) { dotClass = 'upcoming'; badgeClass = 'badge-info'; statusLabel = 'Sắp diễn ra'; }
+    else         { dotClass = 'done'; badgeClass = 'badge-success'; statusLabel = 'Đã diễn ra'; }
     return `
       <div class="dash-session-item">
         <div class="dash-session-dot ${dotClass}"></div>
@@ -184,31 +126,20 @@ function _renderRecentSessions() {
   }).join('');
 }
 
-/* ════════════════════════════════════════
-   RENDER: RECENT MEMBERS (3 ngày gần nhất)
-   ════════════════════════════════════════ */
+/* ── Recent members ── */
 function _renderRecentMembers() {
   const container = document.getElementById('dash-members-list');
   if (!container) return;
-
-  // Lọc thành viên tạo trong 3 ngày gần nhất
   const now = new Date();
   const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-  
-  const recentMembers = _dashState.members.filter(m => {
-    const createdAt = new Date(m.createdAt);
-    return createdAt >= threeDaysAgo && createdAt <= now;
-  }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const recentMembers = _dashState.members
+    .filter(m => { const c = new Date(m.createdAt); return c >= threeDaysAgo && c <= now; })
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   if (!recentMembers.length) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <span class="empty-state-icon">👤</span>
-        <p>Chưa có thành viên mới trong 3 ngày gần nhất.</p>
-      </div>`;
+    container.innerHTML = `<div class="empty-state"><span class="empty-state-icon">👤</span><p>Chưa có thành viên mới trong 3 ngày gần nhất.</p></div>`;
     return;
   }
-
   container.innerHTML = recentMembers.map(m => {
     const initials = getInitials(m.fullName || m.mssv || '?');
     return `
@@ -223,128 +154,151 @@ function _renderRecentMembers() {
   }).join('');
 }
 
-/* ════════════════════════════════════════
-   RENDER: ATTENDANCE LINE CHART
-   ════════════════════════════════════════ */
-function _renderAttendanceLineChart() {
+/* ════════════════════════════════
+   CHART — thiết kế lại đẹp hơn
+   ════════════════════════════════ */
+function _renderAttendanceChart() {
   const container = document.getElementById('dash-attendance-chart');
   if (!container) return;
 
-  // Sắp xếp buổi sinh hoạt theo ngày
   const sortedSessions = [..._dashState.sessions]
     .sort((a, b) => new Date(a.sessionDate) - new Date(b.sessionDate));
 
   if (!sortedSessions.length) {
-    container.innerHTML = `
-      <div class="empty-state" style="padding: 2rem;">
-        <span class="empty-state-icon">📭</span>
-        <p>Chưa có buổi sinh hoạt nào để thống kê.</p>
-      </div>`;
+    container.innerHTML = `<div class="empty-state" style="padding:2rem;"><span class="empty-state-icon">📭</span><p>Chưa có buổi sinh hoạt nào để thống kê.</p></div>`;
     return;
   }
 
-  // Tính số lượng thành viên có mặt cho mỗi buổi
-  const sessionAttendance = sortedSessions.map(session => {
-    const sessionAttendances = _dashState.attendanceAll.filter(
+  const sessionData = sortedSessions.map(session => {
+    const present = _dashState.attendanceAll.filter(
       a => a.sessionId._id === session._id && a.status === 'Có mặt'
-    );
+    ).length;
     return {
-      sessionId: session._id,
-      sessionName: session.sessionName,
-      sessionDate: new Date(session.sessionDate),
-      presentCount: sessionAttendances.length,
+      label: new Date(session.sessionDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+      name:  session.sessionName,
+      count: present,
     };
   });
 
-  // Chuẩn bị dữ liệu cho Chart.js
-  const labels = sessionAttendance.map(s => 
-    s.sessionDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
-  );
-  const data = sessionAttendance.map(s => s.presentCount);
+  const labels = sessionData.map(s => s.label);
+  const data   = sessionData.map(s => s.count);
+  const maxVal = Math.max(...data, 1);
+  const avgVal = data.length ? Math.round(data.reduce((a, b) => a + b, 0) / data.length) : 0;
+  const total  = data.reduce((a, b) => a + b, 0);
 
-  // Tính chiều rộng canvas dựa trên số lượng buổi
-  const canvasWidth = Math.max(600, sortedSessions.length * 60);
+  const canvasWidth = Math.max(600, sortedSessions.length * 72);
+  const isDark = document.body.classList.contains('dark-mode');
 
-  // Tạo canvas wrapper với scroll ngang
   container.innerHTML = `
-    <div class="chart-wrapper" style="overflow-x: auto; width: 100%;">
-      <canvas id="attendance-chart-canvas" style="min-width: ${canvasWidth}px; height: 300px;"></canvas>
+    <div class="chart-outer">
+      <div class="chart-wrapper">
+        <canvas id="attendance-chart-canvas" style="min-width:${canvasWidth}px;height:280px;"></canvas>
+      </div>
+      <div class="dash-chart-summary">
+        <div class="dash-chart-stat">
+          <span class="dash-chart-stat-val">${total}</span>
+          <span class="dash-chart-stat-lbl">Tổng lượt có mặt</span>
+        </div>
+        <div class="dash-chart-stat">
+          <span class="dash-chart-stat-val">${avgVal}</span>
+          <span class="dash-chart-stat-lbl">Trung bình / buổi</span>
+        </div>
+        <div class="dash-chart-stat">
+          <span class="dash-chart-stat-val">${Math.max(...data)}</span>
+          <span class="dash-chart-stat-lbl">Cao nhất</span>
+        </div>
+        <div class="dash-chart-stat">
+          <span class="dash-chart-stat-val">${sortedSessions.length}</span>
+          <span class="dash-chart-stat-lbl">Buổi sinh hoạt</span>
+        </div>
+      </div>
     </div>`;
 
-  // Đợi DOM render xong rồi tạo chart
   setTimeout(() => {
     const canvas = document.getElementById('attendance-chart-canvas');
-    if (!canvas) return;
+    if (!canvas || typeof Chart === 'undefined') return;
 
+    const gridColor = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)';
+    const textColor = isDark ? '#8a95b8' : '#888';
     const ctx = canvas.getContext('2d');
+
+    // Gradient fill
+    const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+    gradient.addColorStop(0, 'rgba(78,115,223,.35)');
+    gradient.addColorStop(1, 'rgba(78,115,223,.02)');
+
     new Chart(ctx, {
       type: 'line',
       data: {
-        labels: labels,
+        labels,
         datasets: [{
-          label: 'Số thành viên có mặt',
-          data: data,
-          borderColor: 'var(--secondary)',
-          backgroundColor: 'rgba(28, 200, 138, 0.1)',
+          label: 'Thành viên có mặt',
+          data,
+          borderColor: '#4e73df',
+          backgroundColor: gradient,
           borderWidth: 2.5,
           fill: true,
           tension: 0.4,
           pointRadius: 5,
-          pointBackgroundColor: 'var(--secondary)',
-          pointBorderColor: 'var(--white)',
-          pointBorderWidth: 2,
-          pointHoverRadius: 7,
+          pointBackgroundColor: '#4e73df',
+          pointBorderColor: isDark ? '#1a1f2e' : '#fff',
+          pointBorderWidth: 2.5,
+          pointHoverRadius: 8,
+          pointHoverBackgroundColor: '#4e73df',
+          pointHoverBorderColor: '#fff',
+          pointHoverBorderWidth: 2,
         }],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
         plugins: {
-          legend: {
-            display: true,
-            labels: {
-              font: { size: 13, weight: '600' },
-              color: '#333',
-              padding: 15,
-              usePointStyle: true,
-            },
-          },
+          legend: { display: false },
           tooltip: {
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            padding: 10,
-            titleFont: { size: 13, weight: '600' },
-            bodyFont: { size: 12 },
-            borderColor: 'var(--secondary)',
+            backgroundColor: isDark ? '#1a1f2e' : '#1a2236',
+            padding: { x: 14, y: 10 },
+            titleFont: { size: 12, weight: '700', family: "'Nunito', sans-serif" },
+            bodyFont:  { size: 13, weight: '800', family: "'Nunito', sans-serif" },
+            titleColor: '#a3bffa',
+            bodyColor:  '#fff',
+            borderColor: '#4e73df',
             borderWidth: 1,
+            cornerRadius: 8,
+            displayColors: false,
             callbacks: {
-              label: function(context) {
-                return `${context.dataset.label}: ${context.parsed.y} người`;
-              }
-            }
+              title: ctx => {
+                const i = ctx[0].dataIndex;
+                return sessionData[i]?.name || ctx[0].label;
+              },
+              label: ctx => `  ${ctx.parsed.y} người có mặt`,
+              afterLabel: ctx => {
+                const pct = maxVal > 0 ? Math.round((ctx.parsed.y / maxVal) * 100) : 0;
+                return `  ${pct}% so với cao nhất`;
+              },
+            },
           },
         },
         scales: {
           y: {
             beginAtZero: true,
-            title: {
-              display: true,
-              text: 'Số thành viên',
-            },
+            suggestedMax: maxVal + 2,
+            grid: { color: gridColor, drawBorder: false },
+            border: { display: false },
             ticks: {
-              font: { size: 11 },
-              color: '#666',
-            },
-            grid: {
-              color: 'rgba(0, 0, 0, 0.05)',
+              font: { size: 11, family: "'Nunito', sans-serif" },
+              color: textColor,
+              padding: 8,
+              stepSize: 1,
             },
           },
           x: {
+            grid: { display: false, drawBorder: false },
+            border: { display: false },
             ticks: {
-              font: { size: 11 },
-              color: '#666',
-            },
-            grid: {
-              display: false,
+              font: { size: 11, family: "'Nunito', sans-serif" },
+              color: textColor,
+              padding: 8,
             },
           },
         },

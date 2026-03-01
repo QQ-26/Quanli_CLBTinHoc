@@ -107,8 +107,18 @@
           <input type="text" id="sessionName" class="form-control" placeholder="VD: Nhập môn lập trình - Tuần 5" />
         </div>
         <div class="form-group">
-          <label for="sessionDate">Ngày tổ chức</label>
-          <input type="datetime-local" id="sessionDate" class="form-control" />
+          <label for="sessionDateOnly">Ngày tổ chức</label>
+          <input type="date" id="sessionDateOnly" class="form-control" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="sessionStartTime">Giờ bắt đầu</label>
+          <input type="time" id="sessionStartTime" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label for="sessionEndTime">Giờ kết thúc</label>
+          <input type="time" id="sessionEndTime" class="form-control" />
         </div>
       </div>
       <div class="form-row">
@@ -120,6 +130,11 @@
           <label for="sessionMaxParticipants">Số lượng tối đa</label>
           <input type="number" id="sessionMaxParticipants" class="form-control" placeholder="50" min="1" />
         </div>
+      </div>
+      <div class="form-group">
+        <label for="sessionDescription">Mô tả</label>
+        <textarea id="sessionDescription" class="form-control session-desc-textarea"
+          placeholder="Mô tả nội dung, mục tiêu hoặc lưu ý của buổi sinh hoạt..." rows="3"></textarea>
       </div>
 
       <!-- Instructors -->
@@ -171,6 +186,20 @@
         </div>
       </div>
 
+      <!-- Attendance search & sort -->
+      <div class="att-search-bar">
+        <div class="att-search-input-wrap">
+          <span class="att-search-icon">🔍</span>
+          <input type="text" id="attSearchInput" class="form-control att-search-input"
+            placeholder="Tìm theo tên hoặc MSSV..."
+            oninput="onAttSearchInput(this.value)" />
+        </div>
+        <button id="btnAttSortAZ" class="btn btn-sm btn-outline-secondary att-sort-btn"
+          onclick="toggleAttSortAZ()" title="Sắp xếp A-Z theo tên">
+          🔤 A→Z
+        </button>
+      </div>
+
       <!-- Attendance table -->
       <div class="table-wrapper">
         <table class="table" id="attendanceTable">
@@ -194,6 +223,9 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Attendance pagination -->
+      <div id="attendancePagination" class="att-pagination"></div>
 
       <!-- Biểu đồ thống kê -->
       <div class="section-divider" style="margin-top:1.5rem;">

@@ -213,18 +213,24 @@
 
 /* Card footer */
 .session-card-footer {
-    padding: 0.6rem 1rem;
+    padding: 0.5rem 1rem;
     border-top: 1px solid var(--border-color);
     background: var(--light);
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: .35rem;
+    justify-content: space-between;
 }
 
 .session-status-badge {
     display: inline-flex;
     align-items: center;
-    padding: 0.22rem 0.65rem;
+    padding: 0.2rem 0.45rem;
     border-radius: 0.2rem;
     font-size: 0.78rem;
     font-weight: 700;
+    white-space: nowrap;
 }
 
 /* ── Instructor rows in modal ── */
@@ -759,12 +765,13 @@
 .type-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.22rem 0.65rem;
+    gap: 0.2rem;
+    padding: 0.2rem 0.45rem;
     border-radius: 0.2rem;
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.01em;
+    white-space: nowrap;
 }
 
 .type-regular {
@@ -787,8 +794,9 @@
 .session-card-footer {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    flex-wrap: wrap;
+    gap: 0.35rem;
+    flex-wrap: nowrap;
+    justify-content: space-around;
 }
 
 /* ── Type radio group in modal ── */
@@ -940,4 +948,157 @@
 
 .modal-xl .table-wrapper::-webkit-scrollbar-thumb:hover {
     background: var(--primary);
+}
+/* ── Attendance search & sort bar ── */
+.att-search-bar {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin: .75rem 0 .5rem;
+}
+.att-search-input-wrap {
+    position: relative;
+    flex: 1;
+}
+.att-search-icon {
+    position: absolute;
+    left: .65rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: .95rem;
+    pointer-events: none;
+}
+.att-search-input {
+    padding-left: 2.1rem !important;
+    height: 36px;
+    font-size: .875rem;
+}
+.att-sort-btn {
+    white-space: nowrap;
+    height: 36px;
+    font-size: .8rem;
+    border: 1.5px solid #cbd5e0;
+    background: #fff;
+    color: #4a5568;
+    border-radius: 6px;
+    padding: 0 .75rem;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+}
+.att-sort-btn:hover {
+    background: #edf2f7;
+    color: #4a5568;
+}
+.att-sort-btn.active {
+    background: var(--primary, #4299e8);
+    color: #fff;
+    border-color: var(--primary, #4299e8);
+}
+
+/* ── Nút đăng ký trên session card ── */
+.btn-register {
+    display: inline-flex;
+    align-items: center;
+    gap: .2rem;
+    padding: .2rem .5rem;
+    border-radius: 20px;
+    border: 1.5px solid #4299e8;
+    background: #fff;
+    color: #4299e8;
+    font-size: .78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .18s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.btn-register:hover {
+    background: #ebf4ff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(66,153,232,.2);
+}
+.btn-register.registered {
+    background: #f0fff4;
+    border-color: #38a169;
+    color: #276749;
+}
+.btn-register.registered:hover {
+    background: #fef2f2;
+    border-color: #e53e3e;
+    color: #c53030;
+}
+.btn-register.registered:hover::after {
+    content: ' (Hủy)';
+}
+
+/* ── Session description textarea ── */
+.session-desc-textarea {
+    resize: vertical;
+    min-height: 80px;
+    font-size: .875rem;
+    line-height: 1.5;
+}
+.detail-description {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    color: #4a5568;
+    background: #f7fafc;
+    padding: .5rem .75rem;
+    border-radius: 6px;
+    border-left: 3px solid #cbd5e0;
+    font-size: .875rem;
+}
+/* ── Attendance table pagination ── */
+.att-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .6rem .25rem .4rem;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+.att-pg-info {
+    font-size: .8rem;
+    color: #718096;
+}
+.att-pg-btns {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+}
+.att-pg-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 .4rem;
+    border-radius: 6px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    color: #4a5568;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.att-pg-btn:hover:not(:disabled) {
+    background: #ebf4ff;
+    border-color: #4299e8;
+    color: #4299e8;
+}
+.att-pg-btn.active {
+    background: #4299e8;
+    border-color: #4299e8;
+    color: #fff;
+}
+.att-pg-btn:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+.att-pg-ellipsis {
+    color: #a0aec0;
+    font-size: .85rem;
+    padding: 0 .15rem;
+    user-select: none;
 }

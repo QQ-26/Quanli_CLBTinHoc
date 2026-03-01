@@ -1027,9 +1027,7 @@
     border-color: #e53e3e;
     color: #c53030;
 }
-.btn-register.registered:hover::after {
-    content: ' (Hủy)';
-}
+/* Đã bỏ ::after (Hủy) vì bị che mất chữ */
 
 /* ── Session description textarea ── */
 .session-desc-textarea {
@@ -1101,4 +1099,32 @@
     font-size: .85rem;
     padding: 0 .15rem;
     user-select: none;
+}
+/* ─── Dark mode: delete modal ─── */
+body.dark-mode .delete-warning p {
+    color: #cdd4ee !important;
+}
+body.dark-mode #deleteSessionName {
+    color: #ffffff !important;
+}
+
+/* ─── Dark mode: btn-register ─── */
+body.dark-mode .btn-register {
+    background: #1e2230;
+    border-color: #4299e8;
+    color: #7ec8ff !important;
+}
+body.dark-mode .btn-register:hover {
+    background: #1a3050;
+    color: #ffffff !important;
+}
+body.dark-mode .btn-register.registered {
+    background: #1a2e22;
+    border-color: #38a169;
+    color: #6ee7a0 !important;
+}
+body.dark-mode .btn-register.registered:hover {
+    background: #2e1a1a;
+    border-color: #e53e3e;
+    color: #fca5a5 !important;
 }

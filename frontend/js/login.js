@@ -40,7 +40,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
     try {
         const loginData = await AuthAPI.login(mssv, password);
-        // Lấy thêm thông tin member để lấy roleName
+        // Lấy thêm thông tin member để lấy roleName và avatarPath
         const memberId = loginData.member.id || loginData.member._id;
         const memberDetail = await MemberAPI.getById(memberId);
         let user = loginData.member;
@@ -48,13 +48,22 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             user.roleName = memberDetail.roleId.roleName;
             user.isAdmin = memberDetail.roleId.roleName.toLowerCase().includes('admin');
         }
+        // Cập nhật avatarPath và các thông tin đầy đủ từ memberDetail
+        if (memberDetail) {
+            if (memberDetail.avatarPath) user.avatarPath = memberDetail.avatarPath;
+            if (memberDetail.fullName)   user.fullName   = memberDetail.fullName;
+            if (memberDetail.className)  user.className  = memberDetail.className;
+            if (memberDetail.email)      user.email      = memberDetail.email;
+        }
         localStorage.setItem('currentUser', JSON.stringify(user));
         showToast('Đăng nhập thành công!', 'success');
         setTimeout(() => {
             window.location.href = 'dashboard.html';
         }, 500);
     } catch (error) {
-        _showLoginAlert(error.message || 'Đăng nhập thất bại');
+        // Hiển thị lỗi cụ thể từ server (sai mật khẩu, tài khoản không tồn tại...)
+        const msg = error.message || 'Đăng nhập thất bại. Vui lòng thử lại.';
+        _showLoginAlert(msg);
         btn.disabled = false;
         btn.innerHTML = '<span>Đăng nhập →</span>';
     }

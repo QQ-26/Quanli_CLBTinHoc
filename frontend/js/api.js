@@ -45,10 +45,14 @@ async function _request(method, path, body = null) {
         }
     }
 
-    // Chưa đăng nhập
+    // Chưa đăng nhập — KHÔNG redirect nếu đang ở trang login (tránh reload xóa alert lỗi)
     if (res.status === 401) {
-        _forceLogout();
-        throw new Error('Bạn chưa đăng nhập.');
+        const _onLoginPage = window.location.pathname.endsWith('index.html')
+            || window.location.pathname === '/'
+            || window.location.pathname.endsWith('/');
+        if (!_onLoginPage) _forceLogout();
+        const errData = await res.clone().json().catch(() => ({}));
+        throw new Error(errData.message || 'Sai thông tin đăng nhập. Vui lòng thử lại.');
     }
 
     const data = await res.json().catch(() => ({}));
@@ -130,6 +134,16 @@ const AuthAPI = {
      */
     async refreshToken(refreshToken) {
         return _request('POST', '/auth/refresh-token', { token: refreshToken });
+    },
+
+    /**
+     * Đổi mật khẩu thành viên (admin gọi thay cho member).
+     * Thử gọi endpoint riêng nếu backend có hỗ trợ.
+     * @param {string} memberId
+     * @param {string} newPassword
+     */
+    async changePassword(memberId, newPassword) {
+        return _request('POST', `/auth/change-password`, { memberId, newPassword, password: newPassword });
     },
 };
 

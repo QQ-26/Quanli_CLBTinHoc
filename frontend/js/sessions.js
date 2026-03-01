@@ -92,6 +92,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ─── Load data ────────────────────────────────────────────────
+// Sync _registerSet từ attendance server
+// Nếu user đã có attendance record (dù không bấm đăng ký) thì mark là registered
+async function _syncRegisterFromAttendance() {
+    const user = getCurrentUser();
+    if (!user) return;
+    try {
+        // Lấy tất cả attendance records của user hiện tại
+        const allAtt = await AttendanceAPI.getAll();
+        if (!Array.isArray(allAtt)) return;
+        allAtt.forEach(a => {
+            const memberId = a.memberId?._id || a.memberId;
+            if (memberId === user.id) {
+                const sessionId = a.sessionId?._id || a.sessionId;
+                if (sessionId) {
+                    _registerSet[sessionId] = true;
+                    // Cache vào attendanceMap luôn
+                    if (!_attendanceMap[sessionId]) _attendanceMap[sessionId] = [];
+                    const exists = _attendanceMap[sessionId].find(x => x._id === a._id);
+                    if (!exists) _attendanceMap[sessionId].push(a);
+                }
+            }
+        });
+        _saveRegisterSet();
+    } catch(e) {
+        // Không block nếu API lỗi
+    }
+}
+
 async function loadAll() {
     showLoading();
     try {
@@ -111,6 +139,10 @@ async function loadAll() {
 
         // Khôi phục trạng thái đăng ký từ localStorage
         _registerSet = _loadRegisterSet();
+
+        // Sync _registerSet từ attendance data thực tế trên server
+        // (trường hợp admin đã điểm danh nhưng user chưa bấm đăng ký)
+        await _syncRegisterFromAttendance();
 
         renderStats();
         renderSessions();
@@ -277,7 +309,9 @@ function renderSessions() {
                     ${isPast ? '✅ Đã diễn ra' : '🔜 Sắp diễn ra'}
                 </span>
                 ${!isPast ? `<button class="btn-register ${_isRegistered(s._id) ? 'registered' : ''}"
-                    onclick="event.stopPropagation(); toggleRegister('${s._id}', this)">
+                    onclick="event.stopPropagation(); toggleRegister('${s._id}', this)"
+                    onmouseenter="if(this.classList.contains('registered')){this.dataset.orig=this.textContent;this.textContent='❌ Hủy đăng ký';}"
+                    onmouseleave="if(this.dataset.orig){this.textContent=this.dataset.orig;delete this.dataset.orig;}">
                     ${_isRegistered(s._id) ? '✅ Đã đăng ký' : '📝 Đăng ký'}
                 </button>` : ''}
             </div>

@@ -64,14 +64,18 @@ function _roleSession_renderTable() {
   tableWrap.style.display = 'block';
   emptyEl.style.display   = 'none';
 
+  const ROW_COLORS = ['#4361ee','#f72585','#f8961e','#0ba222','#7209b7','#00b4d8','#e63946','#2a9d8f'];
+
   tbody.innerHTML = list.map((role, idx) => {
     const name    = escapeHtml(role.roleSessionName || '—');
     const created = formatDate(role.createdAt);
     const id      = escapeHtml(role._id);
+    const color   = ROW_COLORS[idx % ROW_COLORS.length];
+    const delay   = ((idx + 1) * 0.03).toFixed(2);
 
     return `
-      <tr class="role-table-row" data-id="${id}">
-        <td class="role-cell-stt">${idx + 1}</td>
+      <tr class="role-table-row" data-id="${id}" style="animation-delay:${delay}s">
+        <td class="role-cell-stt" style="box-shadow:inset 4px 0 0 0 ${color}">${idx + 1}</td>
         <td>
           <div class="role-name-cell">
             <span class="role-chip">🎭</span>

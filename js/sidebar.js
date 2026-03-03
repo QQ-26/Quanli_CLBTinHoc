@@ -343,4 +343,135 @@ function _initSidebarLogic() {
     item.addEventListener('click', () => { if (window.innerWidth <= 768) closeSidebar(); });
   });
   window.addEventListener('resize', () => { if (window.innerWidth > 768) closeSidebar(); });
+
+  /* ════ Draggable toggle button (mobile) ════ */
+  const TOGGLE_POS_KEY = 'sidebar_toggle_pos';
+  let dragState = {
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    offsetX: 0,
+    offsetY: 0,
+    hasMoved: false,
+  };
+
+  // Khôi phục vị trí từ localStorage
+  function _restoreTogglePosition() {
+    const saved = localStorage.getItem(TOGGLE_POS_KEY);
+    if (saved) {
+      try {
+        const { x, y } = JSON.parse(saved);
+        toggle.style.left = x + 'px';
+        toggle.style.top = y + 'px';
+        toggle.classList.add('has-moved');
+      } catch (e) {
+        console.warn('Failed to restore toggle position:', e);
+      }
+    }
+  }
+
+  // Lưu vị trí hiện tại
+  function _saveTogglePosition() {
+    const x = parseFloat(toggle.style.left) || 0.85 * 16;
+    const y = parseFloat(toggle.style.top) || 0.85 * 16;
+    localStorage.setItem(TOGGLE_POS_KEY, JSON.stringify({ x, y }));
+  }
+
+  // Giới hạn vị trí trong vùng màn hình an toàn
+  function _constrainTogglePosition() {
+    const margin = 10;
+    const btnW = toggle.offsetWidth;
+    const btnH = toggle.offsetHeight;
+    const winW = window.innerWidth;
+    const winH = window.innerHeight;
+
+    let x = parseFloat(toggle.style.left) || 0;
+    let y = parseFloat(toggle.style.top) || 0;
+
+    x = Math.max(margin, Math.min(x, winW - btnW - margin));
+    y = Math.max(margin, Math.min(y, winH - btnH - margin));
+
+    toggle.style.left = x + 'px';
+    toggle.style.top = y + 'px';
+  }
+
+  // Mouse down / Touch start
+  function _startDrag(e) {
+    if (e.button === 2) return;
+
+    dragState.isDragging = true;
+    dragState.hasMoved = false;
+    dragState.startX = e.clientX || e.touches?.[0]?.clientX || 0;
+    dragState.startY = e.clientY || e.touches?.[0]?.clientY || 0;
+    dragState.offsetX = parseFloat(toggle.style.left) || 0;
+    dragState.offsetY = parseFloat(toggle.style.top) || 0;
+
+    toggle.classList.add('dragging');
+  }
+
+  // Mouse move / Touch move
+  function _moveDrag(e) {
+    if (!dragState.isDragging) return;
+
+    const currentX = e.clientX || e.touches?.[0]?.clientX || 0;
+    const currentY = e.clientY || e.touches?.[0]?.clientY || 0;
+
+    const deltaX = currentX - dragState.startX;
+    const deltaY = currentY - dragState.startY;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+    if (distance > 5) {
+      dragState.hasMoved = true;
+    }
+
+    if (!dragState.hasMoved) return;
+
+    let newX = dragState.offsetX + deltaX;
+    let newY = dragState.offsetY + deltaY;
+
+    const margin = 10;
+    const btnW = toggle.offsetWidth;
+    const btnH = toggle.offsetHeight;
+    const winW = window.innerWidth;
+    const winH = window.innerHeight;
+
+    newX = Math.max(margin, Math.min(newX, winW - btnW - margin));
+    newY = Math.max(margin, Math.min(newY, winH - btnH - margin));
+
+    toggle.style.left = newX + 'px';
+    toggle.style.top = newY + 'px';
+  }
+
+  // Mouse up / Touch end
+  function _endDrag(e) {
+    if (!dragState.isDragging) return;
+
+    dragState.isDragging = false;
+    toggle.classList.remove('dragging');
+
+    if (dragState.hasMoved) {
+      _constrainTogglePosition();
+      _saveTogglePosition();
+      toggle.classList.add('has-moved');
+      
+      // Disable click action temporarily
+      toggle.style.pointerEvents = 'none';
+      setTimeout(() => {
+        toggle.style.pointerEvents = 'auto';
+      }, 200);
+    }
+  }
+
+  // Attach drag listeners ONLY (click listener ở trên dòng 339)
+  toggle.addEventListener('mousedown', _startDrag);
+  toggle.addEventListener('touchstart', _startDrag);
+
+  document.addEventListener('mousemove', _moveDrag);
+  document.addEventListener('touchmove', _moveDrag, { passive: false });
+
+  document.addEventListener('mouseup', _endDrag);
+  document.addEventListener('touchend', _endDrag);
+
+  // Khôi phục vị trí khi load
+  _restoreTogglePosition();
 }

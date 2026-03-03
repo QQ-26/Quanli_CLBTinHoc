@@ -186,13 +186,32 @@ function _renderAttendanceChart() {
   const avgVal = data.length ? Math.round(data.reduce((a, b) => a + b, 0) / data.length) : 0;
   const total  = data.reduce((a, b) => a + b, 0);
 
-  const canvasWidth = Math.max(600, sortedSessions.length * 72);
+  // Responsive canvas width calculation
+  const isMobile = window.innerWidth < 768;
+  const isSmallMobile = window.innerWidth < 600;
+  let canvasWidth;
+  let canvasHeight;
+
+  if (isSmallMobile) {
+    // On small mobile: fit content better
+    canvasWidth = Math.max(Math.min(window.innerWidth - 30, 400), sortedSessions.length * 50);
+    canvasHeight = 200;
+  } else if (isMobile) {
+    // On mobile: still wide but better proportioned
+    canvasWidth = Math.max(Math.min(window.innerWidth - 40, 500), sortedSessions.length * 60);
+    canvasHeight = 240;
+  } else {
+    // On desktop: original behavior
+    canvasWidth = Math.max(600, sortedSessions.length * 72);
+    canvasHeight = 280;
+  }
+
   const isDark = document.body.classList.contains('dark-mode');
 
   container.innerHTML = `
     <div class="chart-outer">
       <div class="chart-wrapper">
-        <canvas id="attendance-chart-canvas" style="min-width:${canvasWidth}px;height:280px;"></canvas>
+        <canvas id="attendance-chart-canvas" style="min-width:${canvasWidth}px;height:${canvasHeight}px;"></canvas>
       </div>
       <div class="dash-chart-summary">
         <div class="dash-chart-stat">
@@ -223,9 +242,15 @@ function _renderAttendanceChart() {
     const ctx = canvas.getContext('2d');
 
     // Gradient fill
-    const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
     gradient.addColorStop(0, 'rgba(78,115,223,.35)');
     gradient.addColorStop(1, 'rgba(78,115,223,.02)');
+
+    // Responsive font sizes
+    const fontSize = isSmallMobile ? 9 : (isMobile ? 10 : 11);
+    const titleFontSize = isSmallMobile ? 11 : (isMobile ? 12 : 12);
+    const bodyFontSize = isSmallMobile ? 12 : (isMobile ? 13 : 13);
+    const pointRadius = isSmallMobile ? 4 : (isMobile ? 4.5 : 5);
 
     new Chart(ctx, {
       type: 'line',
@@ -239,11 +264,11 @@ function _renderAttendanceChart() {
           borderWidth: 2.5,
           fill: true,
           tension: 0.4,
-          pointRadius: 5,
+          pointRadius: pointRadius,
           pointBackgroundColor: '#4e73df',
           pointBorderColor: isDark ? '#1a1f2e' : '#fff',
           pointBorderWidth: 2.5,
-          pointHoverRadius: 8,
+          pointHoverRadius: isMobile ? 6 : 8,
           pointHoverBackgroundColor: '#4e73df',
           pointHoverBorderColor: '#fff',
           pointHoverBorderWidth: 2,
@@ -257,9 +282,9 @@ function _renderAttendanceChart() {
           legend: { display: false },
           tooltip: {
             backgroundColor: isDark ? '#1a1f2e' : '#1a2236',
-            padding: { x: 14, y: 10 },
-            titleFont: { size: 12, weight: '700', family: "'Nunito', sans-serif" },
-            bodyFont:  { size: 13, weight: '800', family: "'Nunito', sans-serif" },
+            padding: { x: isMobile ? 10 : 14, y: isMobile ? 8 : 10 },
+            titleFont: { size: titleFontSize, weight: '700', family: "'Nunito', sans-serif" },
+            bodyFont:  { size: bodyFontSize, weight: '800', family: "'Nunito', sans-serif" },
             titleColor: '#a3bffa',
             bodyColor:  '#fff',
             borderColor: '#4e73df',
@@ -286,9 +311,9 @@ function _renderAttendanceChart() {
             grid: { color: gridColor, drawBorder: false },
             border: { display: false },
             ticks: {
-              font: { size: 11, family: "'Nunito', sans-serif" },
+              font: { size: fontSize, family: "'Nunito', sans-serif" },
               color: textColor,
-              padding: 8,
+              padding: isMobile ? 6 : 8,
               stepSize: 1,
             },
           },
@@ -296,9 +321,11 @@ function _renderAttendanceChart() {
             grid: { display: false, drawBorder: false },
             border: { display: false },
             ticks: {
-              font: { size: 11, family: "'Nunito', sans-serif" },
+              font: { size: fontSize, family: "'Nunito', sans-serif" },
               color: textColor,
-              padding: 8,
+              padding: isMobile ? 6 : 8,
+              maxRotation: isMobile ? 45 : 0,
+              minRotation: isMobile ? 45 : 0,
             },
           },
         },

@@ -16,6 +16,16 @@ const _memState = {
 };
 
 /* ════════════════════════════════════════
+   CHẶN ĐÓNG MODAL KHI CLICK NGOÀI
+   Ghi đè listener của utils.js — capture phase chạy trước
+   ════════════════════════════════════════ */
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal-overlay')) {
+    e.stopImmediatePropagation();
+  }
+}, true);
+
+/* ════════════════════════════════════════
    INIT
    ════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async () => {
@@ -37,11 +47,19 @@ async function _loadMembers(page = 1) {
     const res = await MemberAPI.getAll(page, _memState.LIMIT, _memState.keyword);
 
     // Sắp xếp A-Z theo fullName (mặc định)
-    const sorted = (res.members || []).slice().sort((a, b) => {
-      const na = (a.fullName || a.mssv || '').toLowerCase();
-      const nb = (b.fullName || b.mssv || '').toLowerCase();
-      return na.localeCompare(nb, 'vi');
-    });
+    const currentUser = getCurrentUser();
+    const sorted = (res.members || [])
+      .filter(m => {
+        // Ẩn tài khoản của chính mình
+        if (!currentUser) return true;
+        return m._id !== currentUser.id && m.mssv !== currentUser.mssv;
+      })
+      .slice()
+      .sort((a, b) => {
+        const na = (a.fullName || a.mssv || '').toLowerCase();
+        const nb = (b.fullName || b.mssv || '').toLowerCase();
+        return na.localeCompare(nb, 'vi');
+      });
 
     _memState.members     = sorted;
     _memState.totalPages  = res.totalPages  || 1;
@@ -280,6 +298,7 @@ function _openAddModal() {
   document.getElementById('form-member').reset();
   document.getElementById('field-id').value = '';
   document.getElementById('hint-password').textContent = 'Bắt buộc khi tạo mới.';
+  document.getElementById('hint-password').style.color = '#999';
   document.getElementById('password-required').style.display = 'inline';
 
   _resetAvatarPreview(null);
@@ -302,7 +321,8 @@ function _openEditModal(id) {
   document.getElementById('field-email').value     = member.email      || '';
   document.getElementById('field-status').value    = member.status     || 'Hoạt động';
   document.getElementById('field-password').value  = '';
-  document.getElementById('hint-password').textContent = 'Để trống nếu không đổi mật khẩu.';
+  document.getElementById('hint-password').innerHTML = 'Để trống nếu không đổi mật khẩu. Nếu đổi: phải gồm chữ thường (a–z) và chữ số (0–9). Ví dụ: <strong>member12345</strong>';
+  document.getElementById('hint-password').style.color = '#999';
   document.getElementById('password-required').style.display = 'none';
 
   _resetAvatarPreview(member);
@@ -346,6 +366,18 @@ async function _handleSave() {
   if (!fullName) { showToast('Vui lòng nhập họ tên.', 'warning'); return; }
   if (!mssv)     { showToast('Vui lòng nhập MSSV.', 'warning'); return; }
   if (!id && !password) { showToast('Vui lòng nhập mật khẩu cho thành viên mới.', 'warning'); return; }
+
+  // Validate định dạng mật khẩu: phải có ít nhất 1 chữ thường và 1 chữ số
+  const pwdPattern = /^(?=.*[a-z])(?=.*[0-9])[a-z0-9]+$/;
+  if (password && !pwdPattern.test(password)) {
+    const hint = document.getElementById('hint-password');
+    hint.style.color = '#e74a3b';
+    showToast('Mật khẩu chỉ gồm chữ thường (a–z) và chữ số (0–9). Ví dụ: member12345', 'danger');
+    document.getElementById('field-password').focus();
+    return;
+  }
+  // Reset màu hint nếu hợp lệ
+  if (password) document.getElementById('hint-password').style.color = '#999';
 
   const payload = {
     fullName,

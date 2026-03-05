@@ -4,12 +4,22 @@
    Màu sắc: dùng biến từ common.css
    ============================================================ */
 
+  /* ── Card header layout fix ── */
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
   /* ── Header right group ── */
     .role-header-right {
       display: flex;
       align-items: center;
       gap: 0.75rem;
       flex-wrap: wrap;
+      flex-shrink: 0;
     }
 
     /* ── Search box ── */
@@ -274,20 +284,32 @@
     }
 
     /* ── Responsive ── */
-    @media (max-width: 768px) {
+    /* Chỉ ẩn cột Ngày tạo trên mobile thật sự (≤480px).
+       Không dùng 768px vì DevTools inspect panel thu trang xuống ~550px
+       sẽ trigger nhầm và ẩn cột trên desktop. */
+    @media (max-width: 480px) {
+      col.role-col-date,
+      .role-col-date,
       .role-cell-date {
-        display: none;
-        /* ẩn cột ngày trên mobile để không bị chật */
+        display: none !important;
       }
 
       .role-cell-actions {
-        display: flex;
-        gap: 0.3rem;
-        justify-content: center;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: middle;
       }
 
       .role-btn-edit {
-        margin-right: 0;
+        margin-right: 0.25rem;
+      }
+
+      .role-search-input {
+        width: 110px;
+      }
+
+      .role-search-input:focus {
+        width: 130px;
       }
     }
 
@@ -299,7 +321,7 @@
 
     /* Dọc màu được gán động qua JS (xoay vòng vô hạn) */
 
-    /* Hover - chỉ tăng độ sáng */
+    /* Hover */
     .role-table-row:hover td:first-child {
       border-left-width: 3px !important;
       /* Giữ nguyên kích thước */

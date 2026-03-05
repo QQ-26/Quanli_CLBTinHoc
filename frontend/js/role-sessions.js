@@ -1,10 +1,15 @@
 // ── State nội bộ ──
 const _roleSessionState = {
-  list:      [],        // mảng vai trò đã fetch về
-  editingId: null,      // null = đang thêm mới, string = đang sửa
-  deletingId: null,     // id đang chờ xác nhận xóa
-  submitting: false,    // chặn double-submit
+  list:        [],     // toàn bộ vai trò từ server
+  filtered:    [],     // sau khi lọc theo search
+  editingId:   null,
+  deletingId:  null,
+  submitting:  false,
+  currentPage: 1,
+  pageSize:    10,
 };
+
+const PAGE_SIZE = 10;
 
 /* ════════════════════════════════════════
    INIT
@@ -20,6 +25,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (e.key === 'Enter') roleSession_submit();
     });
 
+  // Ngăn đóng modal khi click bên ngoài (chỉ đóng bằng nút X / Hủy / Thêm)
+  document.getElementById('role-modal').addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+  document.getElementById('role-confirm-modal').addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
   await _roleSession_loadList();
 });
 
@@ -33,7 +46,9 @@ async function _roleSession_loadList() {
     const data = await RoleSessionAPI.getAll();
     // API trả về array trực tiếp (không wrap object)
     _roleSessionState.list = Array.isArray(data) ? data : [];
-    _roleSession_renderTable();
+    // Sắp xếp A->Z mặc định
+    _roleSession_sortList();
+    _roleSession_applyFilter();
   } catch (err) {
     console.error('[RoleSession] loadList:', err);
     showToast('Không tải được danh sách vai trò.', 'danger');
@@ -43,35 +58,89 @@ async function _roleSession_loadList() {
   }
 }
 
-function _roleSession_renderTable() {
-  const list      = _roleSessionState.list;
-  const tbody     = document.getElementById('role-table-body');
-  const tableWrap = document.getElementById('role-table-wrap');
-  const emptyEl   = document.getElementById('role-empty');
-  const countEl   = document.getElementById('role-count');
+/* Sắp xếp list A->Z theo roleSessionName */
+function _roleSession_sortList() {
+  _roleSessionState.list.sort((a, b) =>
+    (a.roleSessionName || '').localeCompare(b.roleSessionName || '', 'vi', { sensitivity: 'base' })
+  );
+}
 
-  // Cập nhật badge đếm
+/* Lọc theo từ khóa tìm kiếm, reset về trang 1 nếu từ khóa thay đổi */
+function _roleSession_applyFilter(resetPage = true) {
+  const keyword = (document.getElementById('role-search-input')?.value || '').trim().toLowerCase();
+  if (keyword) {
+    _roleSessionState.filtered = _roleSessionState.list.filter(r =>
+      (r.roleSessionName || '').toLowerCase().includes(keyword)
+    );
+  } else {
+    _roleSessionState.filtered = [..._roleSessionState.list];
+  }
+  if (resetPage) _roleSessionState.currentPage = 1;
+  _roleSession_renderTable();
+}
+
+function _roleSession_renderTable() {
+  const filtered  = _roleSessionState.filtered;
+  const total     = filtered.length;
+  const totalAll  = _roleSessionState.list.length;
+  const page      = _roleSessionState.currentPage;
+  const pageSize  = PAGE_SIZE;
+  const totalPages = Math.ceil(total / pageSize);
+
+  const tbody        = document.getElementById('role-table-body');
+  const tableWrap    = document.getElementById('role-table-wrap');
+  const emptyEl      = document.getElementById('role-empty');
+  const emptySearch  = document.getElementById('role-empty-search');
+  const countEl      = document.getElementById('role-count');
+
+  // Badge đếm
   if (countEl) {
-    countEl.textContent = `${list.length} vai trò`;
+    const keyword = (document.getElementById('role-search-input')?.value || '').trim();
+    countEl.textContent = keyword
+      ? `${total} / ${totalAll} vai trò`
+      : `${totalAll} vai trò`;
   }
 
-  if (!list.length) {
-    tableWrap.style.display = 'none';
-    emptyEl.style.display   = 'block';
+  // Không có dữ liệu gốc
+  if (!totalAll) {
+    tableWrap.style.display   = 'none';
+    emptyEl.style.display     = 'block';
+    if (emptySearch) emptySearch.style.display = 'none';
+    _roleSession_renderPagination();
     return;
   }
 
-  tableWrap.style.display = 'block';
-  emptyEl.style.display   = 'none';
+  emptyEl.style.display = 'none';
 
-  tbody.innerHTML = list.map((role, idx) => {
+  // Có dữ liệu nhưng filter ra 0
+  if (!total) {
+    tableWrap.style.display   = 'none';
+    if (emptySearch) emptySearch.style.display = 'block';
+    _roleSession_renderPagination();
+    return;
+  }
+
+  if (emptySearch) emptySearch.style.display = 'none';
+  tableWrap.style.display = 'block';
+
+  // Slice trang hiện tại
+  const start    = (page - 1) * pageSize;
+  const pageData = filtered.slice(start, start + pageSize);
+
+  const ROW_COLORS = ['#6DC5D1','#FEF889','#FFA4A4','#94A2F2','#426EB4','#FFBDBD','#BADFDB','#F2E7A7'];
+
+  tbody.innerHTML = pageData.map((role, idx) => {
+    const globalIdx = start + idx;               // chỉ số trong filtered (để màu nhất quán)
     const name    = escapeHtml(role.roleSessionName || '—');
     const created = formatDate(role.createdAt);
     const id      = escapeHtml(role._id);
+    const color   = ROW_COLORS[globalIdx % ROW_COLORS.length];
+    const delay   = ((idx + 1) * 0.03).toFixed(2);
+    const stt     = globalIdx + 1;               // STT liên tục qua các trang
 
     return `
-      <tr class="role-table-row" data-id="${id}">
-        <td class="role-cell-stt">${idx + 1}</td>
+      <tr class="role-table-row" data-id="${id}" style="animation-delay:${delay}s">
+        <td class="role-cell-stt " style="box-shadow:inset 3px 0 0 0 ${color};">${stt}</td>
         <td>
           <div class="role-name-cell">
             <span class="role-chip">🎭</span>
@@ -93,6 +162,49 @@ function _roleSession_renderTable() {
         </td>
       </tr>`;
   }).join('');
+
+  // Pagination
+  _roleSession_renderPagination();
+}
+
+/* ════════════════════════════════════════
+   PAGINATION (copy từ members.js)
+   ════════════════════════════════════════ */
+function _roleSession_renderPagination() {
+  const container = document.getElementById('role-pagination');
+  if (!container) return;
+  const { currentPage } = _roleSessionState;
+  const totalPages = Math.ceil(_roleSessionState.filtered.length / PAGE_SIZE) || 1;
+
+  if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+  let html = '';
+  html += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="roleSession_goPage(${currentPage - 1})">‹</button>`;
+
+  const start = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+  const end   = Math.min(totalPages, start + 4);
+
+  for (let p = start; p <= end; p++) {
+    html += `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="roleSession_goPage(${p})">${p}</button>`;
+  }
+
+  html += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="roleSession_goPage(${currentPage + 1})">›</button>`;
+  container.innerHTML = html;
+}
+
+function roleSession_goPage(page) {
+  const totalPages = Math.ceil(_roleSessionState.filtered.length / PAGE_SIZE) || 1;
+  if (page < 1 || page > totalPages) return;
+  _roleSessionState.currentPage = page;
+  _roleSession_renderTable();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ════════════════════════════════════════
+   TÌM KIẾM
+   ════════════════════════════════════════ */
+function roleSession_onSearch() {
+  _roleSession_applyFilter(true);
 }
 
 /* ════════════════════════════════════════
@@ -278,4 +390,6 @@ function _roleSession_showEmpty() {
   document.getElementById('role-empty').style.display      = 'block';
   const countEl = document.getElementById('role-count');
   if (countEl) countEl.textContent = '0 vai trò';
+  const paginEl = document.getElementById('role-pagination');
+  if (paginEl) paginEl.innerHTML = '';
 }

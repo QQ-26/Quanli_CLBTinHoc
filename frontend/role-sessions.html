@@ -8,216 +8,12 @@
 
   <link rel="stylesheet" href="css/common.css" />
   <link rel="stylesheet" href="css/sidebar.css" />
+  <link rel="stylesheet" href="css/role-session.css">
 
-  <style>
-    /* ============================================================
-   role-sessions.css — Styles riêng cho trang Vai trò buổi sinh hoạt
-   Prefix tất cả class: role-
-   Màu sắc: dùng biến từ common.css
-   ============================================================ */
-
-    /* ── Page header ── */
-    .role-card-title {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--dark);
-    }
-
-    /* ── Count badge ── */
-    .role-count-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.22rem 0.75rem;
-      background: rgba(78, 115, 223, 0.1);
-      color: var(--primary);
-      border-radius: 99px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      transition: var(--transition);
-    }
-
-    /* ── Skeleton wrapper ── */
-    .role-skeleton-wrap {
-      padding: 0.5rem 0;
-    }
-
-    .role-skeleton-row {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-      padding: 0.9rem 1.5rem;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .role-skeleton-row:last-child {
-      border-bottom: none;
-    }
-
-    /* ── Table rows ── */
-    .role-table-row {
-      animation: fadeUp 0.25s ease both;
-    }
-
-    .role-table-row:nth-child(1) {
-      animation-delay: 0.03s;
-    }
-
-    .role-table-row:nth-child(2) {
-      animation-delay: 0.06s;
-    }
-
-    .role-table-row:nth-child(3) {
-      animation-delay: 0.09s;
-    }
-
-    .role-table-row:nth-child(4) {
-      animation-delay: 0.12s;
-    }
-
-    .role-table-row:nth-child(5) {
-      animation-delay: 0.15s;
-    }
-
-    .role-table-row:nth-child(6) {
-      animation-delay: 0.18s;
-    }
-
-    .role-table-row:nth-child(7) {
-      animation-delay: 0.21s;
-    }
-
-    .role-table-row:nth-child(8) {
-      animation-delay: 0.24s;
-    }
-
-    /* ── Cell: STT ── */
-    .role-cell-stt {
-      color: black;
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-align: center;
-    }
-
-    /* ── Cell: Tên vai trò ── */
-    .role-name-cell {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-    }
-
-    .role-chip {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 30px;
-      height: 30px;
-      background: rgba(78, 115, 223, 0.08);
-      border-radius: 8px;
-      font-size: 0.9rem;
-      flex-shrink: 0;
-    }
-
-    .role-name-text {
-      font-weight: 600;
-      color: black;
-      font-size: 0.9rem;
-    }
-
-    /* ── Cell: Ngày tạo ── */
-    .role-cell-date {
-      font-size: 0.8rem;
-      color: #aaa;
-      white-space: nowrap;
-    }
-
-    /* ── Cell: Thao tác ── */
-    .role-cell-actions {
-      text-align: center;
-      white-space: nowrap;
-    }
-
-    .role-btn-edit,
-    .role-btn-delete {
-      min-width: 60px;
-    }
-
-    .role-btn-edit {
-      margin-right: 0.4rem;
-    }
-
-    /* ── Form: required star ── */
-    .role-required {
-      color: var(--danger);
-      margin-left: 2px;
-    }
-
-    /* ── Form: input lỗi ── */
-    .role-input-invalid {
-      border-color: var(--danger) !important;
-      box-shadow: 0 0 0 3px rgba(231, 74, 59, 0.12) !important;
-    }
-
-    .role-input-error {
-      font-size: 0.78rem;
-      color: var(--danger);
-      margin-top: 0.35rem;
-      font-weight: 600;
-      padding: 0.3rem 0.5rem;
-      background: rgba(231, 74, 59, 0.06);
-      border-radius: var(--border-radius);
-      border-left: 3px solid var(--danger);
-    }
-
-    /* ── Confirm dialog ── */
-    .role-confirm-dialog {
-      max-width: 420px;
-    }
-
-    .role-confirm-content {
-      text-align: center;
-      padding: 0.5rem 0;
-    }
-
-    .role-confirm-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      display: block;
-      animation: fadeUp 0.25s ease;
-    }
-
-    .role-confirm-content p {
-      font-size: 0.92rem;
-      color: var(--dark);
-      margin-bottom: 0.4rem;
-      line-height: 1.5;
-    }
-
-    .role-confirm-warning {
-      font-size: 0.78rem !important;
-      color: #aaa !important;
-      margin-top: 0.25rem;
-    }
-
-    /* ── Responsive ── */
-    @media (max-width: 768px) {
-      .role-cell-date {
-        display: none;
-        /* ẩn cột ngày trên mobile để không bị chật */
-      }
-
-      .role-cell-actions {
-        display: flex;
-        gap: 0.3rem;
-        justify-content: center;
-      }
-
-      .role-btn-edit {
-        margin-right: 0;
-      }
-    }
-
-  </style>
+  <link rel="apple-touch-icon" sizes="180x180" href="./img/favicon/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./img/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="./img/favicon/favicon-16x16.png" />
+  <link rel="manifest" href="./img/favicon/site.webmanifest" />
 </head>
 
 <body>
@@ -245,7 +41,20 @@
         <div class="card">
           <div class="card-header">
             <span class="role-card-title">Danh sách vai trò</span>
-            <span class="role-count-badge" id="role-count">Đang tải...</span>
+            <div class="role-header-right">
+              <div class="role-search-wrap">
+                <span class="role-search-icon">🔍</span>
+                <input
+                  type="text"
+                  id="role-search-input"
+                  class="role-search-input"
+                  placeholder="Tìm kiếm vai trò..."
+                  oninput="roleSession_onSearch()"
+                  autocomplete="off"
+                />
+              </div>
+              <span class="role-count-badge" id="role-count">Đang tải...</span>
+            </div>
           </div>
           <div class="card-body" style="padding: 0;">
 
@@ -289,6 +98,15 @@
               <span class="empty-state-icon">🎭</span>
               <p>Chưa có vai trò nào. Hãy thêm vai trò đầu tiên!</p>
             </div>
+
+            <!-- Search empty state -->
+            <div id="role-empty-search">
+              <span class="empty-state-icon">🔍</span>
+              <p>Không tìm thấy vai trò nào phù hợp.</p>
+            </div>
+
+            <!-- Pagination -->
+            <div class="role-pagination" id="role-pagination"></div>
 
           </div>
         </div>

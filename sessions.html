@@ -48,9 +48,11 @@
 
         <!-- Tab filter -->
         <div class="tab-filter">
-          <button class="tab-btn active" data-type="all">🗂️ Tất cả</button>
+          <button class="tab-btn active" data-type="registered">✅ Đã đăng ký</button>
+          <button class="tab-btn" data-type="all">🗂️ Tất cả</button>
           <button class="tab-btn" data-type="regular">📌 Sinh hoạt cố định</button>
           <button class="tab-btn" data-type="other">🎯 Hoạt động khác</button>
+          <button class="tab-btn tab-btn-instructor" data-type="instructor" id="btnFilterInstructor" style="display:none;">🎓 Phụ trách</button>
         </div>
 
         <!-- Session cards grid -->
@@ -182,15 +184,14 @@
         <!-- Attendance toolbar -->
         <div class="attendance-toolbar">
           <div class="attendance-stats" id="attendanceStats">
-            <span class="att-badge att-joined">Tham gia: <strong id="attCountJoined">0</strong></span>
+            <span class="att-badge att-joined">Đã đăng ký: <strong id="attCountJoined">0</strong></span>
             <span class="att-badge att-present">Có mặt: <strong id="attCountPresent">0</strong></span>
             <span class="att-badge att-absent">Vắng: <strong id="attCountAbsent">0</strong></span>
             <span class="att-badge att-excused">Có phép: <strong id="attCountExcused">0</strong></span>
-            <span class="att-badge att-total">Tổng: <strong id="attCountTotal">0</strong></span>
           </div>
-          <div class="attendance-actions admin-only">
+          <div class="attendance-actions manage-att-only" id="attendanceActions" style="display:none;">
+            <button class="btn btn-sm btn-info" onclick="openAdminRegisterModal()">➕ Đăng ký cho người khác</button>
             <button class="btn btn-sm btn-success" onclick="markAllPresent()">✅ Điểm danh tất cả</button>
-            <button class="btn btn-sm btn-secondary" onclick="saveAllAttendance()">💾 Lưu điểm danh</button>
           </div>
         </div>
 
@@ -215,12 +216,6 @@
                 <th>#</th>
                 <th>MSSV</th>
                 <th>Họ tên</th>
-                <th class="th-participate">
-                  <span>Tham gia</span>
-                  <label class="check-all-wrap admin-only" title="Chọn / bỏ chọn tất cả">
-                    <input type="checkbox" id="checkAllParticipate" onchange="toggleAllParticipate(this.checked)" />
-                  </label>
-                </th>
                 <th>Trạng thái</th>
                 <th>Ghi chú</th>
               </tr>
@@ -245,7 +240,34 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('detailModal')">Đóng</button>
-        <button class="btn admin-only" onclick="saveAllAttendance()">💾 Lưu điểm danh</button>
+        <button class="btn manage-att-only" id="footerSaveBtn" style="display:none;" onclick="saveAllAttendance()">💾 Lưu điểm danh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+     MODAL: Admin đăng ký cho người khác
+     ══════════════════════════════════════════ -->
+  <div class="modal-overlay" id="adminRegisterModal">
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-header">
+        <h3>➕ Đăng ký tham gia cho thành viên</h3>
+        <button class="modal-close" onclick="closeModal('adminRegisterModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--muted);font-size:.9rem;margin-bottom:1rem;">
+          Chọn thành viên chưa đăng ký để thêm vào danh sách điểm danh buổi này.
+        </p>
+        <div class="form-group" style="margin-bottom:.75rem;">
+          <input type="text" id="adminRegisterSearch" class="form-control"
+            placeholder="🔍 Tìm theo tên hoặc MSSV..."
+            oninput="filterAdminRegisterList(this.value)" />
+        </div>
+        <div id="adminRegisterList" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('adminRegisterModal')">Đóng</button>
+        <button class="btn btn-primary" onclick="confirmAdminRegister()">✅ Xác nhận đăng ký</button>
       </div>
     </div>
   </div>

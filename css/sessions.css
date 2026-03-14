@@ -1128,3 +1128,38 @@ body.dark-mode .btn-register.registered:hover {
     border-color: #e53e3e;
     color: #fca5a5 !important;
 }
+
+/* ─── Nút hủy đăng ký trong bảng điểm danh ─── */
+.btn-unregister {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: none;
+    background: #fee2e2;
+    color: #dc2626;
+    font-size: .7rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: .5rem;
+    opacity: 0;
+    transition: opacity .2s, background .15s;
+    flex-shrink: 0;
+    line-height: 1;
+}
+tr:hover .btn-unregister { opacity: 1; }
+.btn-unregister:hover { background: #dc2626; color: #fff; }
+
+/* ─── Nút btn-info ─── */
+.btn-info {
+    background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+    color: #fff;
+    border: none;
+}
+.btn-info:hover { background: linear-gradient(135deg, #0284c7, #0ea5e9); color: #fff; }
+
+/* ─── Dark mode: btn-unregister ─── */
+body.dark-mode .btn-unregister { background: #3b1f1f; color: #f87171; }
+body.dark-mode .btn-unregister:hover { background: #dc2626; color: #fff; }  

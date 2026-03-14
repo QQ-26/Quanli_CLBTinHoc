@@ -13,7 +13,7 @@ let _attendanceMap    = {};
 let _currentSessionId = null;
 let _deleteId         = null;
 let _searchKeyword    = '';
-let _filterType       = 'all';   // 'all' | 'regular' | 'other'
+let _filterType       = 'registered'; // 'registered' | 'all' | 'regular' | 'other' | 'instructor'
 let _currentPage      = 1;
 const PAGE_SIZE       = 8;
 let _participateSet   = {};      // { sessionId: Set<memberId> }
@@ -23,6 +23,25 @@ let _attSortAZ        = true;    // sắp xếp A-Z theo tên (mặc định b�
 let _statusCache      = {};      // { memberId: status } — cache toàn bộ, không phụ thuộc filter DOM
 let _attCurrentPage   = 1;       // trang hiện tại của bảng điểm danh
 const ATT_PAGE_SIZE   = 10;      // số người mỗi trang điểm danh
+
+// ─── Permission: kiểm tra có quyền quản lý điểm danh không ──
+// Chỉ người phụ trách (instructor) của buổi đó mới được điểm danh / đăng ký cho người khác
+// Admin KHÔNG tự động có quyền nếu không phải instructor của buổi đó
+function isInstructor(sessionId) {
+    const user = getCurrentUser();
+    if (!user) return false;
+    const session = _sessions.find(s => s._id === sessionId);
+    if (!session) return false;
+    const populated = _populateInstructors(session.instructors);
+    return populated.some(i => {
+        const mid = i.memberId?._id || i.memberId;
+        return mid === user.id;
+    });
+}
+
+function canManageAttendance(sessionId) {
+    return isInstructor(sessionId || _currentSessionId);
+}
 
 
 // ─── SessionType local persistence ───────────────────────────
@@ -89,6 +108,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     await loadAll();
+
+    // Chỉ đóng detailModal khi bấm nút X, không đóng khi click nền overlay
+    document.getElementById('detailModal')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
 });
 
 // ─── Load data ────────────────────────────────────────────────
@@ -145,6 +169,19 @@ async function loadAll() {
         await _syncRegisterFromAttendance();
 
         renderStats();
+
+        // Hiện/ẩn tab "Đứng lớp" tuỳ theo user có buổi nào đứng lớp không
+        const user = getCurrentUser();
+        const btnInstructor = document.getElementById('btnFilterInstructor');
+        if (user && btnInstructor) {
+            const hasInstructorSession = _sessions.some(s =>
+                _populateInstructors(s.instructors).some(i =>
+                    (i.memberId?._id || i.memberId) === user.id)
+            );
+            btnInstructor.style.display = hasInstructorSession ? '' : 'none';
+        }
+
+        // Render sau khi _registerSet đã sync đầy đủ → tab "Đã đăng ký" mặc định đúng
         renderSessions();
     } catch (err) {
         showToast('Không thể tải dữ liệu: ' + err.message, 'danger');
@@ -218,15 +255,25 @@ function renderSessions() {
     const grid  = document.getElementById('sessionsGrid');
     const empty = document.getElementById('emptyState');
 
+    const user = getCurrentUser();
+
     let filtered = _sessions.filter(s => {
         const matchSearch = !_searchKeyword ||
             s.sessionName.toLowerCase().includes(_searchKeyword) ||
             (s.location || '').toLowerCase().includes(_searchKeyword);
 
-        const matchType =
-            _filterType === 'all'     ? true :
-            _filterType === 'regular' ? s.sessionType !== 'other' :
-            _filterType === 'other'   ? s.sessionType === 'other' : true;
+        let matchType = true;
+        if (_filterType === 'registered') {
+            matchType = _isRegistered(s._id);
+        } else if (_filterType === 'instructor') {
+            matchType = user && _populateInstructors(s.instructors).some(i =>
+                (i.memberId?._id || i.memberId) === user.id);
+        } else if (_filterType === 'regular') {
+            matchType = s.sessionType !== 'other';
+        } else if (_filterType === 'other') {
+            matchType = s.sessionType === 'other';
+        }
+        // 'all' → matchType = true (giữ nguyên)
 
         return matchSearch && matchType;
     });
@@ -710,12 +757,20 @@ async function openDetailModal(sessionId) {
     `;
 
     openModal('detailModal');
+
+    // Hiện/ẩn nút quản lý điểm danh dựa trên quyền người phụ trách
+    const canManage = canManageAttendance(sessionId);
+    const actionsEl  = document.getElementById('attendanceActions');
+    const footerBtn  = document.getElementById('footerSaveBtn');
+    if (actionsEl)  actionsEl.style.display  = canManage ? 'flex' : 'none';
+    if (footerBtn)  footerBtn.style.display  = canManage ? ''     : 'none';
+
     await loadAttendance(sessionId);
 }
 
 async function loadAttendance(sessionId) {
     document.getElementById('attendanceBody').innerHTML =
-        `<tr><td colspan="6" style="text-align:center;color:#bbb;padding:1.5rem;">Đang tải điểm danh...</td></tr>`;
+        `<tr><td colspan="5" style="text-align:center;color:#bbb;padding:1.5rem;">Đang tải điểm danh...</td></tr>`;
     document.getElementById('attendanceChartArea').innerHTML = '';
 
     try {
@@ -729,7 +784,6 @@ async function loadAttendance(sessionId) {
         (attendance || []).forEach(a => {
             const mid = a.memberId?._id || a.memberId;
             attByMember[mid] = a;
-            // Khởi tạo cache từ dữ liệu server
             if (a.status) _statusCache[mid] = a.status;
         });
 
@@ -737,16 +791,59 @@ async function loadAttendance(sessionId) {
             _participateSet[sessionId] = new Set(Object.keys(attByMember));
         }
 
-        // Nếu user hiện tại đã đăng ký, đảm bảo họ có trong participateSet
+        // Nếu user hiện tại đã đăng ký thông thường, đảm bảo họ có trong participateSet
         const user = getCurrentUser();
         if (user && _isRegistered(sessionId)) {
             _participateSet[sessionId].add(user.id);
         }
 
+        // ── Tự động đăng ký + điểm danh "Có mặt" cho tất cả người phụ trách ──
+        const session = _sessions.find(s => s._id === sessionId);
+        if (session) {
+            const populated = _populateInstructors(session.instructors);
+            for (const instr of populated) {
+                const instrMember = instr.memberId;
+                if (!instrMember) continue;
+                const instrId = instrMember._id || instrMember;
+
+                // Chỉ xử lý nếu chưa có attendance record
+                if (!attByMember[instrId]) {
+                    try {
+                        const rec = await AttendanceAPI.mark({
+                            sessionId,
+                            memberId: instrId,
+                            status: 'Có mặt',
+                            note: ''
+                        });
+                        attByMember[instrId] = rec;
+                        _attendanceMap[sessionId] = [...(_attendanceMap[sessionId] || []), rec];
+                        _statusCache[instrId] = 'Có mặt';
+                    } catch(e) {
+                        // Không block nếu API lỗi
+                    }
+                } else if (attByMember[instrId].status !== 'Có mặt' && !_statusCache[instrId]) {
+                    // Nếu đã có record nhưng status chưa được cache, ưu tiên giữ nguyên
+                    _statusCache[instrId] = attByMember[instrId].status;
+                }
+
+                // Đảm bảo instructor luôn có trong participateSet
+                _participateSet[sessionId].add(instrId);
+
+                // Đánh dấu instructor đã đăng ký trong _registerSet nếu đây là user hiện tại
+                if (user && instrId === user.id) {
+                    _registerSet[sessionId] = true;
+                    _saveRegisterSet();
+                }
+            }
+        }
+
         renderAttendanceTable(attByMember);
+
+        // Cập nhật lại nút đăng ký bên ngoài card nếu instructor tự động được thêm
+        renderSessions();
     } catch (err) {
         document.getElementById('attendanceBody').innerHTML =
-            `<tr><td colspan="6" style="text-align:center;color:var(--danger);padding:1.5rem;">
+            `<tr><td colspan="5" style="text-align:center;color:var(--danger);padding:1.5rem;">
                 Lỗi tải điểm danh: ${escapeHtml(err.message)}
              </td></tr>`;
     }
@@ -754,14 +851,20 @@ async function loadAttendance(sessionId) {
 
 // ─── Render attendance table ──────────────────────────────────
 function renderAttendanceTable(attByMember) {
-    const tbody = document.getElementById('attendanceBody');
-    const admin = isAdmin();
+    const tbody  = document.getElementById('attendanceBody');
+    const canMgr = canManageAttendance();
     const pSet  = _participateSet[_currentSessionId] || new Set();
 
-    if (!_members.length) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#bbb;padding:1.5rem;">Không có thành viên nào.</td></tr>`;
+    // Chỉ hiển thị thành viên đã đăng ký (có trong pSet / attendance records)
+    const registeredMembers = _members.filter(m => pSet.has(m._id));
+
+    if (!registeredMembers.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#bbb;padding:2rem;">
+            Chưa có thành viên nào đăng ký buổi này.
+        </td></tr>`;
         updateAttendanceStats();
         renderAttendanceChart();
+        renderAttendancePagination(0, 1);
         return;
     }
 
@@ -770,8 +873,8 @@ function renderAttendanceTable(attByMember) {
         _statusCache[sel.dataset.member] = sel.value;
     });
 
-    // Lọc và sắp xếp danh sách thành viên
-    let displayMembers = [..._members];
+    // Lọc và sắp xếp
+    let displayMembers = [...registeredMembers];
     if (_attSearchKeyword) {
         const kw = _attSearchKeyword.toLowerCase();
         displayMembers = displayMembers.filter(m =>
@@ -783,7 +886,7 @@ function renderAttendanceTable(attByMember) {
         const getFirstName = name => {
             if (!name) return '';
             const parts = name.trim().split(/\s+/);
-            return parts[parts.length - 1]; // tên (phần cuối) trong tiếng Việt
+            return parts[parts.length - 1];
         };
         displayMembers = [...displayMembers].sort((a, b) =>
             getFirstName(a.fullName || a.mssv || '').localeCompare(
@@ -792,64 +895,49 @@ function renderAttendanceTable(attByMember) {
         );
     }
 
-    // ── Phân trang bảng điểm danh ──
-    const attTotal = displayMembers.length;
+    // ── Phân trang ──
+    const attTotal      = displayMembers.length;
     const attTotalPages = Math.ceil(attTotal / ATT_PAGE_SIZE) || 1;
     if (_attCurrentPage > attTotalPages) _attCurrentPage = attTotalPages;
     if (_attCurrentPage < 1) _attCurrentPage = 1;
-    const attStart = (_attCurrentPage - 1) * ATT_PAGE_SIZE;
+    const attStart     = (_attCurrentPage - 1) * ATT_PAGE_SIZE;
     const pagedMembers = displayMembers.slice(attStart, attStart + ATT_PAGE_SIZE);
 
     tbody.innerHTML = pagedMembers.map((m, idx) => {
-        const mid      = m._id;
-        const isJoined = pSet.has(mid);
-        const rec      = attByMember[mid];
-        // Ưu tiên cache DOM (để không mất dữ liệu khi filter), sau đó mới dùng server data
-        const status   = _statusCache[mid] || rec?.status || 'Vắng';
-        const note     = rec?.note   || '';
-
-        const participateCell = admin
-            ? `<label class="participate-toggle" title="${isJoined ? 'Tham gia' : 'Không tham gia'}">
-                    <input type="checkbox" class="att-participate" data-member="${mid}"
-                        ${isJoined ? 'checked' : ''}
-                        onchange="onParticipateChange(this)" />
-                    <span class="participate-slider"></span>
-               </label>`
-            : isJoined
-                ? `<span class="badge badge-success">✅ Có</span>`
-                : `<span class="badge badge-secondary">— Không</span>`;
+        const mid    = m._id;
+        const rec    = attByMember[mid];
+        const status = _statusCache[mid] || rec?.status || 'Vắng';
+        const note   = rec?.note || '';
 
         const statusColor = status === 'Có mặt' ? 'badge-success' : status === 'Có phép' ? 'badge-warning' : 'badge-danger';
-        let statusCell;
-        if (!isJoined) {
-            statusCell = `<span class="att-na">—</span>`;
-        } else if (admin) {
-            statusCell = `<select class="form-control form-control-sm att-status" data-member="${mid}">
+        const statusCell  = canMgr
+            ? `<select class="form-control form-control-sm att-status" data-member="${mid}">
                     <option value="Có mặt"  ${status==='Có mặt' ?'selected':''}>✅ Có mặt</option>
                     <option value="Vắng"    ${status==='Vắng'   ?'selected':''}>❌ Vắng</option>
                     <option value="Có phép" ${status==='Có phép'?'selected':''}>📋 Có phép</option>
-                </select>`;
-        } else {
-            statusCell = `<span class="badge ${statusColor}">${status}</span>`;
-        }
+               </select>`
+            : `<span class="badge ${statusColor}">${status}</span>`;
 
-        const noteCell = !isJoined
-            ? `<span class="att-na">—</span>`
-            : admin
-                ? `<input type="text" class="form-control form-control-sm att-note" data-member="${mid}" value="${escapeHtml(note)}" placeholder="Ghi chú..." />`
-                : `<span>${escapeHtml(note) || '—'}</span>`;
+        const noteCell = canMgr
+            ? `<input type="text" class="form-control form-control-sm att-note" data-member="${mid}" value="${escapeHtml(note)}" placeholder="Ghi chú..." />`
+            : `<span>${escapeHtml(note) || '—'}</span>`;
+
+        // Nút hủy đăng ký (chỉ người phụ trách mới thấy)
+        const cancelBtn = canMgr
+            ? `<button class="btn-unregister" title="Hủy đăng ký" onclick="adminUnregisterMember('${mid}')">✕</button>`
+            : '';
 
         return `
-        <tr class="${!isJoined ? 'row-not-joined' : ''}">
+        <tr>
             <td>${attStart + idx + 1}</td>
             <td><code>${escapeHtml(m.mssv)}</code></td>
             <td>
                 <div class="member-cell">
                     <div class="member-avatar-sm">${getInitials(m.fullName || m.mssv)}</div>
                     <span>${escapeHtml(m.fullName || m.mssv)}</span>
+                    ${cancelBtn}
                 </div>
             </td>
-            <td class="td-center">${participateCell}</td>
             <td>${statusCell}</td>
             <td>${noteCell}</td>
         </tr>`;
@@ -859,89 +947,135 @@ function renderAttendanceTable(attByMember) {
     renderAttendanceChart();
     renderAttendancePagination(attTotal, attTotalPages);
 
-    const checkAll = document.getElementById('checkAllParticipate');
-    if (checkAll) {
-        const all  = _members.every(m => pSet.has(m._id));
-        const some = _members.some(m  => pSet.has(m._id));
-        checkAll.checked       = all;
-        checkAll.indeterminate = !all && some;
-    }
-
-    if (admin) {
+    if (canMgr) {
         tbody.querySelectorAll('.att-status').forEach(sel => {
             sel.addEventListener('change', () => { updateAttendanceStats(); renderAttendanceChart(); });
         });
     }
 }
 
-// ─── Participate toggle ───────────────────────────────────────
-function onParticipateChange(checkbox) {
-    const mid  = checkbox.dataset.member;
+// ─── Admin: Đăng ký cho người khác ───────────────────────────
+let _adminRegisterSelected = new Set(); // memberId được chọn để đăng ký
+
+function openAdminRegisterModal() {
+    if (!_currentSessionId) return;
+    if (!canManageAttendance()) { showToast('Bạn không có quyền đăng ký cho người khác.', 'warning'); return; }
+    _adminRegisterSelected = new Set();
+
+    // Tìm danh sách thành viên CHƯA đăng ký
     const pSet = _participateSet[_currentSessionId] || new Set();
-    checkbox.checked ? pSet.add(mid) : pSet.delete(mid);
-    _participateSet[_currentSessionId] = pSet;
-    // Nếu bỏ tham gia, xóa khỏi cache
-    if (!checkbox.checked) delete _statusCache[mid];
+    const unregistered = _members.filter(m => !pSet.has(m._id));
 
-    const attendance  = _attendanceMap[_currentSessionId] || [];
-    const attByMember = {};
-    attendance.forEach(a => {
-        const id = a.memberId?._id || a.memberId;
-        attByMember[id] = a;
-    });
-
-    const row      = checkbox.closest('tr');
-    const rec      = attByMember[mid];
-    const status   = rec?.status || 'Vắng';
-    const note     = rec?.note   || '';
-    const isJoined = pSet.has(mid);
-    const tds      = row.querySelectorAll('td');
-
-    tds[4].innerHTML = isJoined
-        ? `<select class="form-control form-control-sm att-status" data-member="${mid}">
-                <option value="Có mặt"  ${status==='Có mặt' ?'selected':''}>✅ Có mặt</option>
-                <option value="Vắng"    ${status==='Vắng'   ?'selected':''}>❌ Vắng</option>
-                <option value="Có phép" ${status==='Có phép'?'selected':''}>📋 Có phép</option>
-           </select>`
-        : `<span class="att-na">—</span>`;
-
-    tds[5].innerHTML = isJoined
-        ? `<input type="text" class="form-control form-control-sm att-note" data-member="${mid}" value="${escapeHtml(note)}" placeholder="Ghi chú..." />`
-        : `<span class="att-na">—</span>`;
-
-    row.className = isJoined ? '' : 'row-not-joined';
-
-    if (isJoined) {
-        tds[4].querySelector('.att-status')?.addEventListener('change', () => {
-            updateAttendanceStats(); renderAttendanceChart();
-        });
-    }
-
-    const checkAll = document.getElementById('checkAllParticipate');
-    if (checkAll) {
-        const all  = _members.every(m => pSet.has(m._id));
-        const some = _members.some(m  => pSet.has(m._id));
-        checkAll.checked       = all;
-        checkAll.indeterminate = !all && some;
-    }
-
-    updateAttendanceStats();
-    renderAttendanceChart();
+    document.getElementById('adminRegisterSearch').value = '';
+    _renderAdminRegisterList(unregistered);
+    openModal('adminRegisterModal');
 }
 
-function toggleAllParticipate(checked) {
-    const pSet = _participateSet[_currentSessionId] || new Set();
-    if (checked) _members.forEach(m => pSet.add(m._id));
-    else         pSet.clear();
-    _participateSet[_currentSessionId] = pSet;
+function _renderAdminRegisterList(members) {
+    const container = document.getElementById('adminRegisterList');
+    if (!members.length) {
+        container.innerHTML = `<div style="padding:1.5rem;text-align:center;color:var(--muted);">Tất cả thành viên đã đăng ký rồi.</div>`;
+        return;
+    }
+    container.innerHTML = members.map(m => {
+        const checked = _adminRegisterSelected.has(m._id) ? 'checked' : '';
+        return `
+        <label class="admin-reg-item" style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;"
+            onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background=''">
+            <input type="checkbox" ${checked} value="${m._id}"
+                onchange="toggleAdminRegisterItem('${m._id}', this.checked)"
+                style="width:16px;height:16px;accent-color:var(--primary);flex-shrink:0;" />
+            <div class="member-avatar-sm" style="flex-shrink:0;">${getInitials(m.fullName || m.mssv)}</div>
+            <div>
+                <div style="font-weight:600;font-size:.9rem;">${escapeHtml(m.fullName || m.mssv)}</div>
+                <div style="font-size:.78rem;color:var(--muted);">MSSV: ${escapeHtml(m.mssv)}</div>
+            </div>
+        </label>`;
+    }).join('');
+}
 
-    const attendance  = _attendanceMap[_currentSessionId] || [];
-    const attByMember = {};
-    attendance.forEach(a => {
-        const id = a.memberId?._id || a.memberId;
-        attByMember[id] = a;
-    });
-    renderAttendanceTable(attByMember);
+function toggleAdminRegisterItem(memberId, checked) {
+    checked ? _adminRegisterSelected.add(memberId) : _adminRegisterSelected.delete(memberId);
+}
+
+function filterAdminRegisterList(keyword) {
+    const pSet = _participateSet[_currentSessionId] || new Set();
+    const kw   = keyword.trim().toLowerCase();
+    const unregistered = _members.filter(m => !pSet.has(m._id));
+    const filtered = kw
+        ? unregistered.filter(m =>
+            (m.fullName || '').toLowerCase().includes(kw) ||
+            (m.mssv || '').toLowerCase().includes(kw))
+        : unregistered;
+    _renderAdminRegisterList(filtered);
+}
+
+async function confirmAdminRegister() {
+    if (!_adminRegisterSelected.size) {
+        showToast('Vui lòng chọn ít nhất một thành viên.', 'warning');
+        return;
+    }
+    showLoading();
+    try {
+        const existing    = _attendanceMap[_currentSessionId] || [];
+        const existingMap = {};
+        existing.forEach(a => {
+            const mid = a.memberId?._id || a.memberId;
+            existingMap[mid] = a;
+        });
+
+        const pSet = _participateSet[_currentSessionId] || new Set();
+        const promises = [];
+
+        _adminRegisterSelected.forEach(memberId => {
+            pSet.add(memberId);
+            if (!existingMap[memberId]) {
+                promises.push(AttendanceAPI.mark({ sessionId: _currentSessionId, memberId, status: 'Vắng', note: '' }));
+            }
+        });
+        _participateSet[_currentSessionId] = pSet;
+
+        const newRecs = await Promise.all(promises);
+        newRecs.forEach(rec => {
+            if (rec) _attendanceMap[_currentSessionId] = [...(_attendanceMap[_currentSessionId] || []), rec];
+        });
+
+        closeModal('adminRegisterModal');
+        showToast(`Đã đăng ký ${_adminRegisterSelected.size} thành viên thành công!`, 'success');
+        _adminRegisterSelected = new Set();
+        _reRenderAttendance();
+    } catch (err) {
+        showToast('Lỗi: ' + err.message, 'danger');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Hủy đăng ký một thành viên (admin)
+async function adminUnregisterMember(memberId) {
+    if (!canManageAttendance()) { showToast('Bạn không có quyền hủy đăng ký.', 'warning'); return; }
+    if (!confirm('Bạn có chắc muốn hủy đăng ký thành viên này khỏi buổi sinh hoạt?')) return;
+    showLoading();
+    try {
+        const pSet = _participateSet[_currentSessionId] || new Set();
+        pSet.delete(memberId);
+        _participateSet[_currentSessionId] = pSet;
+        delete _statusCache[memberId];
+
+        const existing = _attendanceMap[_currentSessionId] || [];
+        const rec = existing.find(a => (a.memberId?._id || a.memberId) === memberId);
+        if (rec) {
+            await AttendanceAPI.delete(rec._id);
+            _attendanceMap[_currentSessionId] = existing.filter(a => a._id !== rec._id);
+        }
+
+        showToast('Đã hủy đăng ký thành viên.', 'info');
+        _reRenderAttendance();
+    } catch (err) {
+        showToast('Lỗi: ' + err.message, 'danger');
+    } finally {
+        hideLoading();
+    }
 }
 
 // ─── Stats ────────────────────────────────────────────────────
@@ -949,12 +1083,11 @@ function _getStats() {
     const pSet = _participateSet[_currentSessionId] || new Set();
     let present = 0, absent = 0, excused = 0;
 
-    // Trước tiên sync cache từ DOM (các select đang hiển thị)
+    // Sync cache từ DOM
     document.querySelectorAll('.att-status').forEach(sel => {
         _statusCache[sel.dataset.member] = sel.value;
     });
 
-    // Đếm dựa trên toàn bộ pSet (không phụ thuộc filter DOM)
     pSet.forEach(mid => {
         const status = _statusCache[mid] || 'Vắng';
         if      (status === 'Có mặt')  present++;
@@ -962,16 +1095,16 @@ function _getStats() {
         else                            absent++;
     });
 
-    return { joined: pSet.size, present, absent, excused, total: _members.length };
+    // total = số người đã đăng ký
+    return { joined: pSet.size, present, absent, excused, total: pSet.size };
 }
 
 function updateAttendanceStats() {
-    const { joined, present, absent, excused, total } = _getStats();
+    const { joined, present, absent, excused } = _getStats();
     document.getElementById('attCountJoined').textContent  = joined;
     document.getElementById('attCountPresent').textContent = present;
     document.getElementById('attCountAbsent').textContent  = absent;
     document.getElementById('attCountExcused').textContent = excused;
-    document.getElementById('attCountTotal').textContent   = total;
 }
 
 // ─── Biểu đồ ──────────────────────────────────────────────────
@@ -1079,32 +1212,24 @@ function buildDonut(present, absent, excused, joined) {
 
 // ─── Điểm danh helpers ────────────────────────────────────────
 function markAllPresent() {
-    // Bước 1: đánh dấu tất cả thành viên là tham gia
-    const pSet = _participateSet[_currentSessionId] || new Set();
-    _members.forEach(m => pSet.add(m._id));
-    _participateSet[_currentSessionId] = pSet;
-
-    // Bước 2: re-render bảng để tạo các select .att-status
-    const attendance  = _attendanceMap[_currentSessionId] || [];
-    const attByMember = {};
-    attendance.forEach(a => {
-        const id = a.memberId?._id || a.memberId;
-        attByMember[id] = a;
-    });
-    renderAttendanceTable(attByMember);
-
-    // Bước 3: set tất cả status = "Có mặt"
+    // Chỉ cập nhật status của người đã đăng ký, không thêm mới
     document.querySelectorAll('.att-status').forEach(sel => {
         sel.value = 'Có mặt';
+        _statusCache[sel.dataset.member] = 'Có mặt';
     });
+
+    // Cập nhật cache cho toàn bộ pSet (kể cả trang không hiển thị)
+    const pSet = _participateSet[_currentSessionId] || new Set();
+    pSet.forEach(mid => { _statusCache[mid] = 'Có mặt'; });
 
     updateAttendanceStats();
     renderAttendanceChart();
-    showToast('Đã chọn "Có mặt" cho tất cả người tham gia. Nhớ nhấn Lưu!', 'info');
+    showToast('Đã chọn "Có mặt" cho tất cả người đã đăng ký. Nhớ nhấn Lưu!', 'info');
 }
 
 async function saveAllAttendance() {
     if (!_currentSessionId) return;
+    if (!canManageAttendance()) { showToast('Bạn không có quyền lưu điểm danh.', 'warning'); return; }
 
     const pSet = _participateSet[_currentSessionId] || new Set();
 
